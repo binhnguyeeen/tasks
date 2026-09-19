@@ -1,0 +1,102 @@
+:root {
+  --bg: #fbfbfd;
+  --surface: #ffffff;
+  --text: #1d1d1f;
+  --muted: #6e6e73;
+  --border: #e5e5ea;
+  --accent: #0a74e0;
+  color-scheme: light dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #111113;
+    --surface: #1c1c1e;
+    --text: #f5f5f7;
+    --muted: #a1a1a6;
+    --border: #2c2c2e;
+    --accent: #4aa3ff;
+  }
+}
+
+:root[data-theme="dark"] {
+  --bg: #111113;
+  --surface: #1c1c1e;
+  --text: #f5f5f7;
+  --muted: #a1a1a6;
+  --border: #2c2c2e;
+  --accent: #4aa3ff;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 17px/1.6 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+main {
+  max-width: 680px;
+  margin: 0 auto;
+  padding: 56px 16px 32px;
+}
+
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--text);
+  font-weight: 600;
+  margin-bottom: 40px;
+}
+.brand img { width: 36px; height: 36px; }
+
+.hero { text-align: center; margin-bottom: 48px; }
+.hero img { width: 128px; height: 128px; filter: drop-shadow(0 8px 24px rgba(0, 119, 230, 0.25)); }
+.hero h1 { font-size: 44px; line-height: 1.1; margin: 20px 0 12px; letter-spacing: -0.02em; }
+.hero p { color: var(--muted); font-size: 20px; margin: 0 auto; max-width: 30ch; }
+
+h1 { font-size: 34px; line-height: 1.15; letter-spacing: -0.015em; margin: 0 0 8px; }
+h2 { font-size: 21px; margin: 40px 0 8px; }
+.updated { color: var(--muted); margin: 0 0 32px; }
+
+.cards { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 20px 22px;
+}
+.card h3 { margin: 0 0 6px; font-size: 18px; }
+.card p { margin: 0; color: var(--muted); font-size: 16px; }
+
+.note {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px 18px;
+  color: var(--muted);
+  font-size: 16px;
+}
+
+ul { padding-left: 22px; }
+li { margin: 4px 0; }
+
+footer {
+  max-width: 680px;
+  margin: 0 auto;
+  padding: 24px 16px 48px;
+  border-top: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 14px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+}
+footer a { color: var(--muted); }

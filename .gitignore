@@ -1,0 +1,24 @@
+# Secrets — never commit
+.dev.vars
+.env*
+mac/Config.xcconfig
+
+# Personal files kept out of the public repo
+plan.md
+private/
+
+# Generated / dependencies
+node_modules/
+.wrangler/
+dist/
+mac/*.xcodeproj
+mac/build/
+DerivedData/
+*.xcuserstate
+xcuserdata/
+
+# macOS
+.DS_Store
+
+# Local Claude Code config
+.claude/
