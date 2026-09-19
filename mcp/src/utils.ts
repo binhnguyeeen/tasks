@@ -4,17 +4,11 @@ export const GOOGLE_USERINFO_URL = "https://openidconnect.googleapis.com/v1/user
 export const GOOGLE_REVOKE_URL = "https://oauth2.googleapis.com/revoke";
 export const TASKS_SCOPE = "https://www.googleapis.com/auth/tasks";
 
-/**
- * Context from the auth process, encrypted & stored with the grant by the
- * OAuth provider and handed to TasksMCP as this.props.
- */
 export type Props = {
-	/** Google account ID (`sub`) */
 	userId: string;
 	email: string;
 	googleRefreshToken: string;
 	googleAccessToken: string;
-	/** Epoch milliseconds when googleAccessToken expires */
 	googleExpiresAt: number;
 };
 
@@ -33,8 +27,6 @@ export function getUpstreamAuthorizeUrl({
 	upstream.searchParams.set("scope", `openid email ${TASKS_SCOPE}`);
 	upstream.searchParams.set("response_type", "code");
 	upstream.searchParams.set("state", state);
-	// Google only returns a refresh token for offline access, and only on the
-	// consent screen. Without it we'd lose access after an hour.
 	upstream.searchParams.set("access_type", "offline");
 	upstream.searchParams.set("prompt", "consent");
 	return upstream.href;
@@ -49,7 +41,6 @@ export interface GoogleTokenResponse {
 	id_token?: string;
 }
 
-/** Thrown when Google says the refresh token is no longer valid (revoked or expired). */
 export class GoogleAuthRevokedError extends Error {}
 
 async function postToken(params: Record<string, string>): Promise<GoogleTokenResponse> {
@@ -96,7 +87,6 @@ export function refreshGoogleToken(opts: {
 	});
 }
 
-/** Best effort: removes this app from the user's Google account permissions. */
 export async function revokeGoogleToken(token: string): Promise<void> {
 	await fetch(GOOGLE_REVOKE_URL, {
 		body: new URLSearchParams({ token }).toString(),
@@ -105,7 +95,6 @@ export async function revokeGoogleToken(token: string): Promise<void> {
 	}).catch(() => undefined);
 }
 
-/** Case-insensitive check against the comma-separated ALLOWED_EMAILS secret. Fails closed. */
 export function isEmailAllowed(allowedEmails: string | undefined, email: string | undefined): boolean {
 	if (!allowedEmails || !email) return false;
 	const wanted = email.trim().toLowerCase();
@@ -116,7 +105,6 @@ export function isEmailAllowed(allowedEmails: string | undefined, email: string 
 		.includes(wanted);
 }
 
-/** A small branded HTML page for errors shown in the browser during sign-in. */
 export function htmlPage(title: string, message: string, status = 400): Response {
 	const esc = (s: string) =>
 		s.replace(/[&<>"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[ch]!);

@@ -1,7 +1,3 @@
-/**
- * Thin client for the Google Tasks REST API.
- * https://developers.google.com/workspace/tasks/reference/rest
- */
 import type { GoogleTask, GoogleTaskList } from "./todos";
 
 const BASE = "https://tasks.googleapis.com/tasks/v1";
@@ -15,7 +11,6 @@ export class GoogleApiError extends Error {
 	}
 }
 
-/** Supplies a valid access token; `forceRefresh` is set after Google answers 401. */
 export type TokenSource = (forceRefresh: boolean) => Promise<string>;
 
 type Query = Record<string, string | number | boolean | undefined>;
@@ -48,7 +43,6 @@ export class GoogleTasksClient {
 				const err = (await resp.json()) as { error?: { message?: string } };
 				if (err.error?.message) message += `: ${err.error.message}`;
 			} catch {
-				// keep the status-only message
 			}
 			throw new GoogleApiError(resp.status, message);
 		}
@@ -85,7 +79,6 @@ export class GoogleTasksClient {
 					maxResults: 100,
 					pageToken,
 					showCompleted: opts.showCompleted,
-					// Completed tasks move to "hidden" once cleared in the Tasks app
 					showHidden: opts.showCompleted,
 					dueMin: opts.dueMin,
 					dueMax: opts.dueMax,

@@ -33,9 +33,7 @@ describe("due date round trip", () => {
 });
 
 describe("todayIn", () => {
-	// 18:30 UTC on 19 Sep is already 20 Sep in Vietnam (UTC+7)
 	const evening = new Date("2026-09-19T18:30:00Z");
-	// 02:00 UTC on 19 Sep is still 18 Sep in California (UTC-7)
 	const earlyMorning = new Date("2026-09-19T02:00:00Z");
 
 	it("uses the user's time zone ahead of UTC", () => {

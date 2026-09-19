@@ -8,7 +8,6 @@ import { buildTodos, countTodos, dueBounds, type TodoGroup, toTodo, type When } 
 export interface ToolDeps {
 	client: GoogleTasksClient;
 	defaultTimeZone: string;
-	/** Throws when the caller is no longer on the allow-list. */
 	assertAllowed: () => void;
 }
 
@@ -36,7 +35,6 @@ function fail(error: unknown): CallToolResult {
 export function registerTools(server: McpServer, deps: ToolDeps) {
 	const { client } = deps;
 
-	/** Runs a tool body with the allow-list check and error reporting. */
 	const run =
 		<A>(body: (args: A) => Promise<CallToolResult>) =>
 		async (args: A): Promise<CallToolResult> => {

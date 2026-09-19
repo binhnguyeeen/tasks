@@ -7,13 +7,11 @@ import { GoogleTasksClient } from "./google-tasks";
 import { registerTools } from "./tools";
 import { GoogleAuthRevokedError, isEmailAllowed, type Props, refreshGoogleToken } from "./utils";
 
-/** Refresh Google's access token when it has less than this left. */
 const REFRESH_MARGIN_MS = 2 * 60 * 1000;
 
 export class TasksMCP extends McpAgent<Env, Record<string, never>, Props> {
 	server = new McpServer({ name: "Tasks", version: "0.1.0" });
 
-	/** Latest Google access token for this session (props can be older). */
 	#token?: { accessToken: string; expiresAt: number };
 	#refreshing?: Promise<string>;
 
@@ -36,7 +34,6 @@ export class TasksMCP extends McpAgent<Env, Record<string, never>, Props> {
 		const current = this.#token ?? { accessToken: props.googleAccessToken, expiresAt: props.googleExpiresAt };
 		if (!forceRefresh && current.expiresAt - Date.now() > REFRESH_MARGIN_MS) return current.accessToken;
 
-		// One refresh at a time, even when several Google calls run in parallel
 		this.#refreshing ??= (async () => {
 			try {
 				const fresh = await refreshGoogleToken({
@@ -66,12 +63,8 @@ export default new OAuthProvider({
 	clientRegistrationEndpoint: "/register",
 	defaultHandler: GoogleHandler as any,
 	tokenEndpoint: "/token",
-	// Stay connected until access is revoked. The defaults would make Claude
-	// reconnect every 30 days (grants) and re-register every 90 days (clients).
 	refreshTokenTTL: undefined,
 	clientRegistrationTTL: undefined,
-	// When Claude refreshes its token, refresh Google's too, so new sessions start
-	// with a fresh one and revoked or removed accounts are cut off.
 	tokenExchangeCallback: async ({ grantType, props }) => {
 		if (grantType !== "refresh_token") return;
 		const current = props as Props;

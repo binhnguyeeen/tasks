@@ -1,12 +1,7 @@
-/**
- * Pure logic for get_todos: which tasks match a time window, and how they're
- * grouped, nested and sorted. No network calls, so it's unit-tested directly.
- */
 import { addDays, dueDateOf } from "./dates";
 
 export type When = "today_and_overdue" | "next_7_days" | "no_date" | "all";
 
-/** The subset of a Google Tasks `Task` resource this connector uses. */
 export interface GoogleTask {
 	id: string;
 	title?: string;
@@ -47,9 +42,7 @@ export interface TodoGroup {
 	tasks: Todo[];
 }
 
-/** The due-date window Google can filter on server-side, as RFC 3339 bounds. */
 export function dueBounds(when: When, today: string): { dueMin?: string; dueMax?: string } {
-	// Bounds are only a pre-filter; `matchesWhen` decides exactly.
 	switch (when) {
 		case "today_and_overdue":
 			return { dueMax: `${addDays(today, 1)}T00:00:00.000Z` };
@@ -60,7 +53,6 @@ export function dueBounds(when: When, today: string): { dueMin?: string; dueMax?
 	}
 }
 
-/** Whether a task belongs in the `when` window. */
 export function matchesWhen(task: GoogleTask, when: When, today: string): boolean {
 	const due = dueDateOf(task.due);
 	switch (when) {
@@ -103,11 +95,6 @@ function byDueThenPosition(a: GoogleTask, b: GoogleTask): number {
 	return da === db ? byPosition(a, b) : da.localeCompare(db);
 }
 
-/**
- * Filters one list's tasks to the window and nests subtasks under their parent
- * when the parent is also in the result. A subtask whose parent was filtered
- * out stays top-level and keeps `parent_id`.
- */
 export function buildTodos(
 	tasks: GoogleTask[],
 	listId: string,
@@ -146,7 +133,6 @@ export function buildTodos(
 	return roots;
 }
 
-/** Counts tasks including nested subtasks. */
 export function countTodos(todos: Todo[]): number {
 	return todos.reduce((n, t) => n + 1 + countTodos(t.subtasks ?? []), 0);
 }

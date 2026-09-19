@@ -24,7 +24,6 @@ import {
 
 const app = new Hono<{ Bindings: Env & { OAUTH_PROVIDER: OAuthHelpers } }>();
 
-// The Worker URL is only an API; people who open it in a browser land on the website.
 app.get("/", (c) => c.redirect(c.env.HOMEPAGE_URL, 302));
 app.get("/privacy", (c) => c.redirect(new URL("privacy.html", c.env.HOMEPAGE_URL).href, 302));
 
@@ -35,9 +34,7 @@ app.get("/authorize", async (c) => {
 		return c.text("Invalid request", 400);
 	}
 
-	// Check if client is already approved
 	if (await isClientApproved(c.req.raw, clientId, c.env.COOKIE_ENCRYPTION_KEY)) {
-		// Skip approval dialog but still create secure state and bind to session
 		const { stateToken } = await createOAuthState(oauthReqInfo, c.env.OAUTH_KV);
 		const { setCookie: sessionBindingCookie } = await bindStateToSession(stateToken);
 		return redirectToGoogle(c.req.raw, c.env, stateToken, {
@@ -45,7 +42,6 @@ app.get("/authorize", async (c) => {
 		});
 	}
 
-	// Generate CSRF protection for the approval form
 	const { token: csrfToken, setCookie } = generateCSRFProtection();
 
 	return renderApprovalDialog(c.req.raw, {
@@ -64,13 +60,10 @@ app.get("/authorize", async (c) => {
 
 app.post("/authorize", async (c) => {
 	try {
-		// Read form data once
 		const formData = await c.req.raw.formData();
 
-		// Validate CSRF token
 		validateCSRFToken(formData, c.req.raw);
 
-		// Extract state from form data
 		const encodedState = formData.get("state");
 		if (!encodedState || typeof encodedState !== "string") {
 			return c.text("Missing state in form data", 400);
@@ -87,18 +80,15 @@ app.post("/authorize", async (c) => {
 			return c.text("Invalid request", 400);
 		}
 
-		// Add client to approved list
 		const approvedClientCookie = await addApprovedClient(
 			c.req.raw,
 			state.oauthReqInfo.clientId,
 			c.env.COOKIE_ENCRYPTION_KEY,
 		);
 
-		// Create OAuth state and bind it to this user's session
 		const { stateToken } = await createOAuthState(state.oauthReqInfo, c.env.OAUTH_KV);
 		const { setCookie: sessionBindingCookie } = await bindStateToSession(stateToken);
 
-		// Set both cookies: approved client list + session binding
 		const headers = new Headers();
 		headers.append("Set-Cookie", approvedClientCookie);
 		headers.append("Set-Cookie", sessionBindingCookie);
@@ -109,7 +99,6 @@ app.post("/authorize", async (c) => {
 		if (error instanceof OAuthError) {
 			return error.toResponse();
 		}
-		// Unexpected non-OAuth error
 		return c.text(`Internal server error: ${error.message}`, 500);
 	}
 });
@@ -133,24 +122,7 @@ async function redirectToGoogle(
 	});
 }
 
-/**
- * OAuth Callback Endpoint
- *
- * Handles the callback from Google after the user signs in. It exchanges the
- * code for Google tokens, checks the account is on ALLOWED_EMAILS, stores the
- * tokens in the grant's encrypted props, and redirects back to the MCP client.
- *
- * SECURITY: This endpoint validates that the state parameter from Google
- * matches both:
- * 1. A valid state token in KV (proves it was created by our server)
- * 2. The __Host-CONSENTED_STATE cookie (proves THIS browser consented to it)
- *
- * This prevents CSRF attacks where an attacker's state token is injected
- * into a victim's OAuth flow.
- */
 app.get("/callback", async (c) => {
-	// Validate OAuth state with session binding
-	// This checks both KV storage AND the session cookie
 	let oauthReqInfo: AuthRequest;
 	let clearSessionCookie: string;
 
@@ -162,7 +134,6 @@ app.get("/callback", async (c) => {
 		if (error instanceof OAuthError) {
 			return error.toResponse();
 		}
-		// Unexpected non-OAuth error
 		return c.text("Internal server error", 500);
 	}
 
@@ -174,7 +145,6 @@ app.get("/callback", async (c) => {
 		return htmlPage("Sign-in cancelled", "Google sign-in didn't finish. Close this tab and try connecting again.");
 	}
 
-	// Exchange the code for Google tokens
 	const code = c.req.query("code");
 	if (!code) {
 		return c.text("Missing code", 400);
@@ -193,7 +163,6 @@ app.get("/callback", async (c) => {
 		return htmlPage("Couldn't sign in", "Google didn't accept the sign-in. Close this tab and try again.", 502);
 	}
 
-	// Fetch the user info from Google
 	const userResponse = await fetch(GOOGLE_USERINFO_URL, {
 		headers: { Authorization: `Bearer ${tokens.access_token}` },
 	});
@@ -207,8 +176,6 @@ app.get("/callback", async (c) => {
 		email_verified?: boolean;
 	};
 
-	// Invite-only: the Worker URL is public, so reject anyone not on the list,
-	// store nothing for them, and remove the app from their Google account.
 	if (!email || !email_verified || !isEmailAllowed(c.env.ALLOWED_EMAILS, email)) {
 		c.executionCtx.waitUntil(revokeGoogleToken(tokens.refresh_token ?? tokens.access_token));
 		return htmlPage(
@@ -218,7 +185,6 @@ app.get("/callback", async (c) => {
 		);
 	}
 
-	// Google lets people untick permissions on the consent screen
 	const grantedScopes = (tokens.scope ?? "").split(" ");
 	if (!grantedScopes.includes(TASKS_SCOPE)) {
 		c.executionCtx.waitUntil(revokeGoogleToken(tokens.refresh_token ?? tokens.access_token));
@@ -240,7 +206,6 @@ app.get("/callback", async (c) => {
 		userId: sub,
 	};
 
-	// Return back to the MCP client a new token
 	const { redirectTo } = await c.env.OAUTH_PROVIDER.completeAuthorization({
 		metadata: {
 			label: email,
@@ -251,7 +216,6 @@ app.get("/callback", async (c) => {
 		userId: sub,
 	});
 
-	// Clear the session binding cookie (one-time use) by creating response with headers
 	const headers = new Headers({ Location: redirectTo });
 	if (clearSessionCookie) {
 		headers.set("Set-Cookie", clearSessionCookie);
