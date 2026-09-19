@@ -1,0 +1,44 @@
+/**
+ * Tasks connector: a remote MCP server that lets Claude read and update Google Tasks.
+ * https://developers.cloudflare.com/workers/wrangler/configuration/
+ */
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "tasks-mcp",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-09-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": true,
+  "preview_urls": false,
+  "vars": {
+    // Default time zone for "today" when Claude doesn't pass one
+    "TIMEZONE": "Asia/Ho_Chi_Minh",
+    "HOMEPAGE_URL": "https://binhnguyeeen.github.io/tasks/"
+  },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": ["TasksMCP"]
+    }
+  ],
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "MCP_OBJECT",
+        "class_name": "TasksMCP"
+      }
+    ]
+  },
+  "kv_namespaces": [
+    {
+      "binding": "OAUTH_KV",
+      "id": "9b6e52d928784c13bdd8bf69c57a89a5"
+    }
+  ],
+  "observability": {
+    "enabled": true
+  },
+  "dev": {
+    "port": 8788
+  }
+}

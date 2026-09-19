@@ -22,3 +22,7 @@ xcuserdata/
 
 # Local Claude Code config
 .claude/
+
+# Local-only notes for Claude
+CLAUDE.md
+design.md
