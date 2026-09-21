@@ -15,6 +15,5 @@ xcuserdata/
 .DS_Store
 .claude/
 
-# Local-only notes for Claude
 CLAUDE.md
-design.md
+designp1.md
