@@ -5,10 +5,10 @@ import { SwitchMode } from "@/components/watermelon/switch-mode";
 const base = import.meta.env.BASE_URL;
 
 const tabs = [
-  { id: "index", icon: <CircleCheck size={16} />, label: "Tasks", activeColor: "text-sky-600 dark:text-sky-400" },
-  { id: "guide", icon: <BookOpen size={16} />, label: "Guide", activeColor: "text-amber-600 dark:text-amber-400" },
-  { id: "claude", icon: <Sparkles size={16} />, label: "Claude", activeColor: "text-orange-600 dark:text-orange-400" },
-  { id: "help", icon: <HelpCircle size={16} />, label: "Help", activeColor: "text-zinc-600 dark:text-zinc-300" },
+  { id: "index", href: base, icon: <CircleCheck size={16} />, label: "Tasks", activeColor: "text-sky-600 dark:text-sky-400" },
+  { id: "guide", href: `${base}guide.html`, icon: <BookOpen size={16} />, label: "Guide", activeColor: "text-amber-600 dark:text-amber-400" },
+  { id: "claude", href: `${base}claude.html`, icon: <Sparkles size={16} />, label: "Claude", activeColor: "text-orange-600 dark:text-orange-400" },
+  { id: "help", href: `${base}help.html`, icon: <HelpCircle size={16} />, label: "Help", activeColor: "text-zinc-600 dark:text-zinc-300" },
 ];
 
 export function SiteNav({ current }: { current: string }) {
@@ -20,14 +20,7 @@ export function SiteNav({ current }: { current: string }) {
           <span className="text-lg">Tasks</span>
         </a>
         <div className="hidden sm:block">
-          <DiscreteTabs
-            tabs={tabs}
-            defaultTab={current}
-            onTabChange={id => {
-              const next = id === "index" ? base : `${base}${id}.html`;
-              if (id !== current) window.location.href = next;
-            }}
-          />
+          <DiscreteTabs tabs={tabs} activeTab={current} />
         </div>
         <div className="scale-[0.42] origin-right">
           <SwitchMode />

@@ -50,6 +50,7 @@ export function FloatingNav({ current }: { current: string }) {
                   <a
                     key={link.id}
                     href={link.href}
+                    onClick={() => setOpen(false)}
                     aria-current={active ? "page" : undefined}
                     className={`flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm ${
                       active

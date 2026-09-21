@@ -1,14 +1,26 @@
-import { ArrowUpRight, Check } from "lucide-react";
+import { ArrowUpRight, Check, CopySlash, EyeOff, KeyRound } from "lucide-react";
 import { InlineAction } from "@/components/watermelon/inline-action";
+import { requestAccess } from "@/lib/contact";
 
 const base = import.meta.env.BASE_URL;
 
-function requestAccess() {
-  const address = ["trinhquocbinhnguyen", "gmail.com"].join("@");
-  const subject = encodeURIComponent("Tasks connector access");
-  const body = encodeURIComponent("Hi, could you add me to the Tasks connector? My Google account is: ");
-  window.location.href = `mailto:${address}?subject=${subject}&body=${body}`;
-}
+const privacyPoints = [
+  {
+    icon: CopySlash,
+    title: "No copies.",
+    body: "Neither the app nor the connector keeps its own copy of your tasks.",
+  },
+  {
+    icon: KeyRound,
+    title: "Only your tasks.",
+    body: "Tasks asks for Google Tasks access and nothing else in your account.",
+  },
+  {
+    icon: EyeOff,
+    title: "No tracking.",
+    body: "No analytics, no ads, no trackers. The code is open source.",
+  },
+];
 
 export default function Home() {
   return (
@@ -151,6 +163,37 @@ export default function Home() {
         </section>
 
         <section className="px-5 py-24">
+          <div className="mx-auto max-w-5xl">
+            <div className="max-w-xl">
+              <p className="text-sm font-medium text-amber-600">Privacy</p>
+              <h2 className="font-display mt-2 text-5xl leading-tight">Your tasks stay in Google Tasks.</h2>
+            </div>
+            <div className="mt-12 grid gap-x-10 gap-y-8 sm:grid-cols-3">
+              {privacyPoints.map(point => {
+                const Icon = point.icon;
+                return (
+                  <article key={point.title}>
+                    <Icon size={20} className="text-zinc-400" />
+                    <p className="mt-4 text-pretty text-zinc-500 dark:text-zinc-400">
+                      <strong className="font-medium text-zinc-900 dark:text-zinc-100">{point.title}</strong>{" "}
+                      {point.body}
+                    </p>
+                  </article>
+                );
+              })}
+            </div>
+            <p className="mt-10">
+              <a
+                href={`${base}privacy.html`}
+                className="inline-flex items-center gap-1.5 text-sky-600 hover:underline dark:text-sky-400"
+              >
+                Read the Privacy Policy <ArrowUpRight size={15} />
+              </a>
+            </p>
+          </div>
+        </section>
+
+        <section className="px-5 pb-24">
           <div className="mx-auto max-w-3xl rounded-[2rem] bg-zinc-50 px-8 py-16 text-center dark:bg-zinc-950">
             <h2 className="font-display text-5xl leading-tight">Invite-only, for now.</h2>
             <p className="mx-auto mt-4 max-w-md text-pretty text-zinc-500 dark:text-zinc-400">
