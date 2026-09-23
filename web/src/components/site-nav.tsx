@@ -1,15 +1,23 @@
+import type { ReactNode } from "react";
 import { BookOpen, CircleCheck, HelpCircle, Sparkles } from "lucide-react";
 import { DiscreteTabs } from "@/components/watermelon/discrete-tabs";
 import { SwitchMode } from "@/components/watermelon/switch-mode";
+import { routes, tabOrder } from "@/routes";
 
 const base = import.meta.env.BASE_URL;
 
-const tabs = [
-  { id: "index", href: base, icon: <CircleCheck size={16} />, label: "Tasks", activeColor: "text-sky-600 dark:text-sky-400" },
-  { id: "guide", href: `${base}guide.html`, icon: <BookOpen size={16} />, label: "Guide", activeColor: "text-amber-600 dark:text-amber-400" },
-  { id: "claude", href: `${base}claude.html`, icon: <Sparkles size={16} />, label: "Claude", activeColor: "text-orange-600 dark:text-orange-400" },
-  { id: "help", href: `${base}help.html`, icon: <HelpCircle size={16} />, label: "Help", activeColor: "text-zinc-600 dark:text-zinc-300" },
-];
+const look: Record<string, { icon: ReactNode; label: string; activeColor: string }> = {
+  index: { icon: <CircleCheck size={16} />, label: "Tasks", activeColor: "text-sky-600 dark:text-sky-400" },
+  guide: { icon: <BookOpen size={16} />, label: "Guide", activeColor: "text-amber-600 dark:text-amber-400" },
+  claude: { icon: <Sparkles size={16} />, label: "Claude", activeColor: "text-orange-600 dark:text-orange-400" },
+  help: { icon: <HelpCircle size={16} />, label: "Help", activeColor: "text-zinc-600 dark:text-zinc-300" },
+};
+
+const tabs = tabOrder.map(id => ({
+  id,
+  href: routes.find(route => route.id === id)!.path,
+  ...look[id],
+}));
 
 export function SiteNav({ current }: { current: string }) {
   return (

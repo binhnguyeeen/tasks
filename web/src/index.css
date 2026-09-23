@@ -189,23 +189,118 @@ html.cursor-hidden * {
   word-break: break-all;
 }
 
-@keyframes route-enter {
+.route-viewport {
+  position: relative;
+  overflow-x: clip;
+}
+
+.route-layer {
+  width: 100%;
+}
+
+[class*="route-out-"] {
+  position: absolute;
+  left: 0;
+  right: 0;
+}
+
+@keyframes route-from-right {
   from {
-    opacity: 0;
-    transform: translateY(4px);
+    transform: translateX(100%);
   }
   to {
-    opacity: 1;
     transform: none;
   }
 }
 
-.route-enter {
-  animation: route-enter 220ms cubic-bezier(0.32, 0.72, 0, 1);
+@keyframes route-from-left {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: none;
+  }
+}
+
+@keyframes route-to-left {
+  from {
+    transform: none;
+  }
+  to {
+    transform: translateX(-100%);
+  }
+}
+
+@keyframes route-to-right {
+  from {
+    transform: none;
+  }
+  to {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes route-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes route-fade-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+.route-in-right,
+.route-in-left,
+.route-in-fade,
+.route-out-right,
+.route-out-left,
+.route-out-fade {
+  animation-duration: 320ms;
+  animation-timing-function: cubic-bezier(0.32, 0.72, 0, 1);
+  animation-fill-mode: both;
+  will-change: transform, opacity;
+}
+
+.route-in-right {
+  animation-name: route-from-right;
+}
+
+.route-out-right {
+  animation-name: route-to-left;
+}
+
+.route-in-left {
+  animation-name: route-from-left;
+}
+
+.route-out-left {
+  animation-name: route-to-right;
+}
+
+.route-in-fade {
+  animation-name: route-fade-in;
+}
+
+.route-out-fade {
+  animation-name: route-fade-out;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .route-enter {
+  .route-in-right,
+  .route-in-left,
+  .route-in-fade,
+  .route-out-right,
+  .route-out-left,
+  .route-out-fade {
     animation: none;
   }
 }

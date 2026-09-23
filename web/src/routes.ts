@@ -70,6 +70,12 @@ export const routes: Route[] = [
   },
 ];
 
+export const tabOrder = ["index", "guide", "claude", "help"];
+
+export function tabIndex(id: string): number {
+  return tabOrder.indexOf(id);
+}
+
 const home = routes[0];
 
 export function matchRoute(pathname: string): Route | null {
