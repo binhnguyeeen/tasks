@@ -273,3 +273,43 @@ struct TimelineTests {
         #expect(rows.allSatisfy { $0.depth == 0 })
     }
 }
+
+@MainActor
+struct ReorderTests {
+    private func makeStore() -> TaskStore {
+        let auth = GoogleAuth(keychain: Keychain(service: "com.binhnguyen.tasks.tests"))
+        auth.useSampleAccount()
+        let store = TaskStore(auth: auth, connectivity: Connectivity())
+        store.loadSampleData()
+        return store
+    }
+
+    private func order(_ store: TaskStore) -> [String] {
+        let rows = store.query.sections(for: .list("sample-my-tasks"), showCompleted: false, sort: .manual, collapsed: []).first?.rows ?? []
+        return rows.map(\.id)
+    }
+
+    @Test func movesATaskWithItsSubtasks() {
+        let store = makeStore()
+        store.reorderTask("sample-plan-trip", after: "sample-return-library-books")
+        #expect(order(store) == [
+            "sample-pay-rent", "sample-buy-printer-ink", "sample-return-library-books",
+            "sample-plan-trip", "sample-book-flights", "sample-book-hotel",
+        ])
+    }
+
+    @Test func movesATaskToTheTop() {
+        let store = makeStore()
+        store.reorderTask("sample-buy-printer-ink", after: nil)
+        #expect(order(store).first == "sample-buy-printer-ink")
+    }
+
+    @Test func reordersSubtasksWithinTheirParent() {
+        let store = makeStore()
+        store.reorderTask("sample-book-flights", after: "sample-book-hotel")
+        #expect(order(store) == [
+            "sample-pay-rent", "sample-plan-trip", "sample-book-hotel", "sample-book-flights",
+            "sample-buy-printer-ink", "sample-return-library-books",
+        ])
+    }
+}

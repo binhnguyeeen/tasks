@@ -79,11 +79,17 @@ actor TasksAPI {
         try await send("PATCH", "/lists/\(escape(listID))/tasks/\(escape(taskID))", body: patch)
     }
 
-    func moveTask(_ taskID: String, from listID: String, to destinationID: String) async throws -> GoogleTask {
+    func moveTask(
+        _ taskID: String,
+        from listID: String,
+        to destinationID: String? = nil,
+        parent: String? = nil,
+        previous: String? = nil
+    ) async throws -> GoogleTask {
         let data = try await data(
             "POST",
             "/lists/\(escape(listID))/tasks/\(escape(taskID))/move",
-            query: ["destinationTasklist": destinationID]
+            query: ["destinationTasklist": destinationID, "parent": parent, "previous": previous]
         )
         return try decoder.decode(GoogleTask.self, from: data)
     }

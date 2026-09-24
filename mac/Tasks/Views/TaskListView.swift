@@ -92,6 +92,29 @@ struct TaskListView: View {
                     .selectionDisabled()
             }
         }
+        .onMove(perform: canReorder ? { source, destination in reorder(section.rows, source, destination) } : nil)
+    }
+
+    private var canReorder: Bool {
+        guard case .list = scope else { return false }
+        return sort == .manual && window.draft == nil && store.canEdit
+    }
+
+    private func reorder(_ rows: [DisplayRow], _ source: IndexSet, _ destination: Int) {
+        guard let from = source.first, case .task(let moved) = rows[from] else { return }
+        let parentID = moved.task.parentID
+        let siblings = rows.enumerated().compactMap { index, row -> (Int, String)? in
+            guard case .task(let item) = row, item.id != moved.id, item.task.parentID == parentID else { return nil }
+            return (index, item.id)
+        }
+        if parentID != nil {
+            let blockStart = rows.firstIndex { $0.id == parentID } ?? 0
+            let blockEnd = (siblings.map(\.0) + [from]).max() ?? from
+            guard destination > blockStart, destination <= blockEnd + 1 else { return }
+        }
+        let previous = siblings.last { $0.0 < destination }?.1
+        window.pinnedTaskIDs = []
+        withAnimation(.snappy) { store.reorderTask(moved.id, after: previous) }
     }
 
     private var options: TaskRow.Options {

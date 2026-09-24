@@ -262,6 +262,35 @@ final class TaskStore {
         }
     }
 
+    func reorderTask(_ id: String, after previousID: String?) {
+        guard canEdit, let task = task(id), !task.isPending, previousID != id else { return }
+        let siblings = tasks
+            .filter { $0.listID == task.listID && $0.parentID == task.parentID && $0.id != id }
+            .sorted(by: TaskQuery.byPosition)
+        let before = tasks.filter { $0.listID == task.listID && $0.parentID == task.parentID }
+        var order = siblings.map(\.id)
+        let insertAt = previousID.flatMap { order.firstIndex(of: $0).map { $0 + 1 } } ?? 0
+        order.insert(id, at: insertAt)
+        for (rank, siblingID) in order.enumerated() {
+            guard let i = index(of: siblingID) else { continue }
+            tasks[i].position = String(format: "%020d", rank)
+        }
+        mutate([id], failure: "Couldn’t move “\(task.title)”. Check your connection.") { [api] in
+            _ = try await api.moveTask(id, from: task.listID, parent: task.parentID, previous: previousID)
+            await self.reloadList(task.listID)
+        } undo: {
+            for sibling in before { self.replace(sibling.id, with: sibling) }
+        }
+    }
+
+    private func reloadList(_ listID: String) async {
+        guard let fetched = try? await api.tasks(in: listID) else { return }
+        let busy = Set(inFlight.keys)
+        let local = Dictionary(uniqueKeysWithValues: tasks.map { ($0.id, $0) })
+        let fresh = fetched.map { TaskItem($0, listID: listID) }.map { busy.contains($0.id) ? (local[$0.id] ?? $0) : $0 }
+        tasks = tasks.filter { $0.listID != listID || ($0.isPending && busy.contains($0.id)) } + fresh
+    }
+
     func moveTask(_ id: String, to destinationID: String) {
         guard canEdit, let task = task(id), !task.isPending, task.listID != destinationID,
               !destinationID.hasPrefix("local-"), list(destinationID) != nil
