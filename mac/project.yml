@@ -1,0 +1,83 @@
+name: Tasks
+options:
+  bundleIdPrefix: com.binhnguyen
+  deploymentTarget:
+    macOS: "27.0"
+  createIntermediateGroups: true
+configFiles:
+  Debug: Config.xcconfig
+  Release: Config.xcconfig
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    MACOSX_DEPLOYMENT_TARGET: "27.0"
+    MARKETING_VERSION: "1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    DEAD_CODE_STRIPPING: YES
+    ENABLE_USER_SCRIPT_SANDBOXING: YES
+    SWIFT_APPROACHABLE_CONCURRENCY: YES
+targets:
+  Tasks:
+    type: application
+    platform: macOS
+    sources:
+      - path: Tasks
+      - path: ../AppIcon.icon
+        type: file
+        buildPhase: resources
+    info:
+      path: Tasks/Info.plist
+      properties:
+        CFBundleName: $(APP_DISPLAY_NAME)
+        CFBundleDisplayName: $(APP_DISPLAY_NAME)
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        LSUIElement: true
+        LSApplicationCategoryType: public.app-category.productivity
+        NSHumanReadableCopyright: MIT License
+        GoogleClientID: $(GOOGLE_CLIENT_ID)
+    entitlements:
+      path: Tasks/Tasks.entitlements
+      properties:
+        com.apple.security.app-sandbox: true
+        com.apple.security.network.client: true
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.binhnguyen.tasks
+        PRODUCT_NAME: Tasks
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        CODE_SIGN_IDENTITY: "-"
+        CODE_SIGN_STYLE: Manual
+        DEVELOPMENT_TEAM: ""
+        ENABLE_HARDENED_RUNTIME: YES
+        SWIFT_DEFAULT_ACTOR_ISOLATION: MainActor
+        SWIFT_STRICT_CONCURRENCY: complete
+      configs:
+        Debug:
+          APP_DISPLAY_NAME: Tasks (Debug)
+        Release:
+          APP_DISPLAY_NAME: Tasks
+  TasksTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources:
+      - path: TasksTests
+    dependencies:
+      - target: Tasks
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.binhnguyen.tasks.tests
+        CODE_SIGN_IDENTITY: "-"
+        CODE_SIGN_STYLE: Manual
+        GENERATE_INFOPLIST_FILE: YES
+        TEST_HOST: $(BUILT_PRODUCTS_DIR)/Tasks.app/Contents/MacOS/Tasks
+        BUNDLE_LOADER: $(TEST_HOST)
+schemes:
+  Tasks:
+    build:
+      targets:
+        Tasks: all
+        TasksTests: [test]
+    test:
+      targets:
+        - TasksTests
