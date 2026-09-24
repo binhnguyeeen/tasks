@@ -15,7 +15,14 @@ actor TasksAPI {
     private let decoder = JSONDecoder()
     private let encoder = JSONEncoder()
 
-    init(session: URLSession = .shared, token: @escaping TokenProvider) {
+    static let uncachedSession: URLSession = {
+        let configuration = URLSessionConfiguration.default
+        configuration.urlCache = nil
+        configuration.requestCachePolicy = .reloadIgnoringLocalCacheData
+        return URLSession(configuration: configuration)
+    }()
+
+    init(session: URLSession = TasksAPI.uncachedSession, token: @escaping TokenProvider) {
         self.session = session
         self.token = token
     }

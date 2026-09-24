@@ -146,7 +146,7 @@ final class TaskStore {
     }
 
     func refreshIfStale() async {
-        guard Date.now.timeIntervalSince(lastRefresh) > 20 else { return }
+        guard Date.now.timeIntervalSince(lastRefresh) > 5 else { return }
         await refresh()
     }
 
@@ -436,11 +436,24 @@ final class TaskStore {
         Task { [weak self] in
             await self?.refresh()
             while !Task.isCancelled {
-                try? await Task.sleep(for: .seconds(300))
-                await self?.refresh()
+                try? await Task.sleep(for: .seconds(60))
+                guard let self else { return }
+                if NSApp.isActive || Date.now.timeIntervalSince(self.lastRefresh) >= 300 {
+                    await self.refresh()
+                }
             }
         }
         let center = NotificationCenter.default
+        observers.append(center.addObserver(forName: NSApplication.didBecomeActiveNotification, object: nil, queue: .main) { [weak self] _ in
+            MainActor.assumeIsolated {
+                Task { await self?.refreshIfStale() }
+            }
+        })
+        observers.append(center.addObserver(forName: NSWindow.didBecomeKeyNotification, object: nil, queue: .main) { [weak self] _ in
+            MainActor.assumeIsolated {
+                Task { await self?.refreshIfStale() }
+            }
+        })
         observers.append(center.addObserver(forName: .NSCalendarDayChanged, object: nil, queue: .main) { [weak self] _ in
             MainActor.assumeIsolated { self?.today = .today() }
         })
