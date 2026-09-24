@@ -10,7 +10,7 @@ struct TaskListView: View {
         let sections = placeDraft(in: query.sections(
             for: scope,
             showCompleted: item.map(window.showsCompleted) ?? false,
-            sort: item.map(window.sortMode) ?? .manual,
+            sort: sort,
             collapsed: window.collapsed
         ))
         List(selection: $window.selectedTaskID) {
@@ -62,6 +62,10 @@ struct TaskListView: View {
         }
     }
 
+    private var sort: SortMode {
+        item.map(window.sortMode) ?? .manual
+    }
+
     private var query: TaskQuery {
         var query = store.query
         query.pinned = window.pinnedTaskIDs
@@ -91,13 +95,16 @@ struct TaskListView: View {
     }
 
     private var options: TaskRow.Options {
+        let groupedByList = sort == .list
         switch scope {
         case .smart(.today), .smart(.scheduled):
-            TaskRow.Options(showsDue: false, showsList: true, showsParent: true)
+            return TaskRow.Options(showsDue: groupedByList, showsList: !groupedByList, showsParent: true)
+        case .smart(.all), .smart(.completed):
+            return TaskRow.Options(showsDue: true, showsList: !groupedByList, showsParent: !groupedByList)
         case .search:
-            TaskRow.Options(showsDue: true, showsList: false, showsParent: true)
-        default:
-            TaskRow.Options(showsDue: true, showsList: false, showsParent: false)
+            return TaskRow.Options(showsDue: true, showsList: false, showsParent: true)
+        case .list:
+            return TaskRow.Options(showsDue: true, showsList: false, showsParent: false)
         }
     }
 
@@ -124,13 +131,17 @@ struct TaskListView: View {
 
         let targetID: String
         let title: String?
+        let byList = sort == .list && scope != .list(draft.listID)
         switch scope {
-        case .smart(.today):
+        case .smart(.today) where !byList:
             targetID = "today"
             title = "Today"
-        case .smart(.all):
+        case .smart where byList:
             targetID = draft.listID
             title = store.listTitle(draft.listID)
+        case .smart:
+            targetID = "timeline"
+            title = nil
         default:
             targetID = draft.listID
             title = nil
@@ -138,10 +149,10 @@ struct TaskListView: View {
         if let index = display.firstIndex(where: { $0.id == targetID }) {
             display[index].rows.insert(.draft(draft, depth: 0), at: 0)
         } else {
-            let listID = scope == .smart(.all) ? draft.listID : nil
+            let listID = byList ? draft.listID : nil
             let section = DisplaySection(id: targetID, title: title, listID: listID, rows: [.draft(draft, depth: 0)])
             let order = { (id: String) in store.lists.firstIndex { $0.id == id } ?? .max }
-            if scope == .smart(.all), let index = display.firstIndex(where: { order($0.id) > order(draft.listID) }) {
+            if byList, let index = display.firstIndex(where: { order($0.id) > order(draft.listID) }) {
                 display.insert(section, at: index)
             } else {
                 display.append(section)

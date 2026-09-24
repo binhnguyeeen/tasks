@@ -106,14 +106,17 @@ final class WindowModel {
         defaults.set(Array(completedShown), forKey: Keys.completedShown)
     }
 
-    func canChooseSort(_ item: SidebarItem) -> Bool {
-        if case .smart(let smart) = item { return !smart.sortsByDateOnly }
-        return true
+    func sortOptions(_ item: SidebarItem) -> [SortMode] {
+        switch item {
+        case .smart(let smart): smart.sortOptions
+        case .list: [.manual, .date]
+        }
     }
 
     func sortMode(_ item: SidebarItem) -> SortMode {
-        if case .smart(let smart) = item, smart.sortsByDateOnly { return .date }
-        return sortModes[item.storageKey] ?? .manual
+        let options = sortOptions(item)
+        if let stored = sortModes[item.storageKey], options.contains(stored) { return stored }
+        return options[0]
     }
 
     func setSortMode(_ mode: SortMode, for item: SidebarItem) {

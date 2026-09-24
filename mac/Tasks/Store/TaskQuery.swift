@@ -3,6 +3,15 @@ import Foundation
 nonisolated enum SortMode: String, CaseIterable, Sendable {
     case manual
     case date
+    case list
+
+    var title: String {
+        switch self {
+        case .manual: "My Order"
+        case .date: "Date"
+        case .list: "List"
+        }
+    }
 }
 
 nonisolated enum SmartList: String, CaseIterable, Identifiable, Sendable {
@@ -31,8 +40,11 @@ nonisolated enum SmartList: String, CaseIterable, Identifiable, Sendable {
         }
     }
 
-    var sortsByDateOnly: Bool {
-        self == .today || self == .scheduled || self == .completed
+    var sortOptions: [SortMode] {
+        switch self {
+        case .today, .scheduled: [.date, .list]
+        case .all, .completed: [.list, .date]
+        }
     }
 }
 
@@ -72,20 +84,26 @@ nonisolated struct TaskQuery: Sendable {
             let rows = outline(tasks.filter { $0.listID == listID && visible($0) }, sort: sort, collapsed: collapsed)
             return rows.isEmpty ? [] : [TaskSection(id: listID, rows: rows)]
         case .smart(.today):
-            return todaySections(visible: visible, collapsed: collapsed)
+            let items = todayItems(visible: visible)
+            return sort == .list ? byList(items, collapsed: collapsed) : todaySections(items, collapsed: collapsed)
         case .smart(.scheduled):
-            return scheduledSections(visible: visible, collapsed: collapsed)
+            let items = tasks.filter { $0.due != nil && visible($0) }
+            return sort == .list ? byList(items, collapsed: collapsed) : scheduledSections(items, collapsed: collapsed)
         case .smart(.all):
+            let items = tasks.filter(visible)
+            if sort == .date { return timeline(items) }
             return lists.compactMap { list in
-                let rows = outline(tasks.filter { $0.listID == list.id && visible($0) }, sort: sort, collapsed: collapsed)
+                let rows = outline(items.filter { $0.listID == list.id }, sort: .manual, collapsed: collapsed)
                 return rows.isEmpty ? nil : TaskSection(id: list.id, title: list.title, listID: list.id, rows: rows)
             }
         case .smart(.completed):
+            let done = tasks.filter(\.isDone).sorted { ($0.completedAt ?? .distantPast) > ($1.completedAt ?? .distantPast) }
+            if sort == .date {
+                return done.isEmpty ? [] : [TaskSection(id: "timeline", rows: done.map { TaskRowItem(task: $0) })]
+            }
             return lists.compactMap { list in
-                let done = tasks
-                    .filter { $0.listID == list.id && $0.isDone }
-                    .sorted { ($0.completedAt ?? .distantPast) > ($1.completedAt ?? .distantPast) }
-                return done.isEmpty ? nil : TaskSection(id: list.id, title: list.title, listID: list.id, rows: done.map { TaskRowItem(task: $0) })
+                let rows = done.filter { $0.listID == list.id }.map { TaskRowItem(task: $0) }
+                return rows.isEmpty ? nil : TaskSection(id: list.id, title: list.title, listID: list.id, rows: rows)
             }
         case .search(let text):
             return searchSections(text)
@@ -129,21 +147,24 @@ nonisolated struct TaskQuery: Sendable {
         return rows
     }
 
-    private func todaySections(visible: (TaskItem) -> Bool, collapsed: Set<String>) -> [TaskSection] {
-        let dated = tasks.filter { task in
+    private func todayItems(visible: (TaskItem) -> Bool) -> [TaskItem] {
+        tasks.filter { task in
             guard let due = task.due, visible(task) else { return false }
             return task.isDone && !lingering.contains(task.id) ? due == today : due <= today
         }
-        let overdue = pinnedFirst(dated.filter { $0.due! < today }.sorted(by: byDateThenList))
-        let dueToday = pinnedFirst(dated.filter { $0.due == today }.sorted(by: byDateThenList))
+    }
+
+    private func todaySections(_ items: [TaskItem], collapsed: Set<String>) -> [TaskSection] {
+        let overdue = pinnedFirst(items.filter { $0.due! < today }.sorted(by: byDateThenList))
+        let dueToday = pinnedFirst(items.filter { $0.due == today }.sorted(by: byDateThenList))
         return [
             section("overdue", "Overdue", overdue, collapsed: collapsed),
             section("today", "Today", dueToday, collapsed: collapsed),
         ].compactMap { $0 }
     }
 
-    private func scheduledSections(visible: (TaskItem) -> Bool, collapsed: Set<String>) -> [TaskSection] {
-        let dated = tasks.filter { $0.due != nil && visible($0) }.sorted(by: byDateThenList)
+    private func scheduledSections(_ items: [TaskItem], collapsed: Set<String>) -> [TaskSection] {
+        let dated = items.sorted(by: byDateThenList)
         var order: [String] = []
         var groups: [String: (title: String, tasks: [TaskItem])] = [:]
         for task in dated {
@@ -155,6 +176,18 @@ nonisolated struct TaskQuery: Sendable {
             groups[key]?.tasks.append(task)
         }
         return order.compactMap { key in groups[key].flatMap { section(key, $0.title, pinnedFirst($0.tasks), collapsed: collapsed) } }
+    }
+
+    private func byList(_ items: [TaskItem], collapsed: Set<String>) -> [TaskSection] {
+        lists.compactMap { list in
+            let inList = pinnedFirst(items.filter { $0.listID == list.id }.sorted(by: byDateThenList))
+            return inList.isEmpty ? nil : TaskSection(id: list.id, title: list.title, listID: list.id, rows: nested(inList, collapsed: collapsed))
+        }
+    }
+
+    private func timeline(_ items: [TaskItem]) -> [TaskSection] {
+        let rows = pinnedFirst(items.sorted(by: byDateThenList)).map { TaskRowItem(task: $0) }
+        return rows.isEmpty ? [] : [TaskSection(id: "timeline", rows: rows)]
     }
 
     private func scheduledGroup(for due: Day) -> (String, String) {

@@ -218,3 +218,58 @@ struct PinnedTests {
         #expect(sortedRows.map(\.id) == ["a", "b", "new"])
     }
 }
+
+struct SortTests {
+    private let today = Day(year: 2026, month: 9, day: 19)!
+    private let lists = [TaskList(id: "mine", title: "My Tasks"), TaskList(id: "work", title: "Work")]
+
+    private var query: TaskQuery {
+        TaskQuery(
+            tasks: [
+                TaskItem(id: "rent", listID: "mine", title: "Rent", due: today.adding(days: -1), position: "1"),
+                TaskItem(id: "ink", listID: "mine", title: "Ink", position: "2"),
+                TaskItem(id: "trip", listID: "mine", title: "Trip", due: today.adding(days: 3), position: "3"),
+                TaskItem(id: "passport", listID: "work", title: "Passport", due: today.adding(days: -7), position: "1"),
+                TaskItem(id: "invoice", listID: "work", title: "Invoice", due: today, position: "2"),
+            ],
+            lists: lists,
+            today: today
+        )
+    }
+
+    @Test func allByDateIsOneTimelineAcrossLists() {
+        let sections = query.sections(for: .smart(.all), showCompleted: false, sort: .date, collapsed: [])
+        #expect(sections.count == 1)
+        #expect(sections[0].title == nil)
+        #expect(sections[0].rows.map(\.id) == ["passport", "rent", "invoice", "trip", "ink"])
+    }
+
+    @Test func todayByListGroupsUnderEachList() {
+        let sections = query.sections(for: .smart(.today), showCompleted: false, sort: .list, collapsed: [])
+        #expect(sections.map(\.title) == ["My Tasks", "Work"])
+        #expect(sections[1].rows.map(\.id) == ["passport", "invoice"])
+    }
+
+    @Test func eachViewOffersItsOwnSorts() {
+        #expect(SmartList.today.sortOptions == [.date, .list])
+        #expect(SmartList.all.sortOptions == [.list, .date])
+    }
+}
+
+struct TimelineTests {
+    @Test func subtasksSitAtTheirOwnDateInTheTimeline() {
+        let today = Day(year: 2026, month: 9, day: 19)!
+        let query = TaskQuery(
+            tasks: [
+                TaskItem(id: "trip", listID: "l", title: "Trip", position: "1"),
+                TaskItem(id: "flights", listID: "l", title: "Flights", due: today.adding(days: 1), parentID: "trip", position: "0"),
+                TaskItem(id: "rent", listID: "l", title: "Rent", due: today, position: "2"),
+            ],
+            lists: [TaskList(id: "l", title: "L")],
+            today: today
+        )
+        let rows = query.sections(for: .smart(.all), showCompleted: false, sort: .date, collapsed: []).first?.rows ?? []
+        #expect(rows.map(\.id) == ["rent", "flights", "trip"])
+        #expect(rows.allSatisfy { $0.depth == 0 })
+    }
+}

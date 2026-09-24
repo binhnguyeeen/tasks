@@ -30,13 +30,12 @@ struct TasksCommands: Commands {
 
         CommandGroup(before: .sidebar) {
             if let item = window.selection {
-                if window.canChooseSort(item) {
-                    Picker("Sort By", selection: Binding(
-                        get: { window.sortMode(item) },
-                        set: { window.setSortMode($0, for: item) }
-                    )) {
-                        Text("My Order").tag(SortMode.manual)
-                        Text("Date").tag(SortMode.date)
+                Picker("Sort By", selection: Binding(
+                    get: { window.sortMode(item) },
+                    set: { window.setSortMode($0, for: item) }
+                )) {
+                    ForEach(window.sortOptions(item), id: \.self) { mode in
+                        Text(mode.title).tag(mode)
                     }
                 }
                 if item != .smart(.completed) {

@@ -108,8 +108,9 @@ struct MainWindow: View {
                         get: { window.sortMode(item) },
                         set: { window.setSortMode($0, for: item) }
                     )) {
-                        Text("My Order").tag(SortMode.manual)
-                        Text("Date").tag(SortMode.date)
+                        ForEach(window.sortOptions(item), id: \.self) { mode in
+                            Text(mode.title).tag(mode)
+                        }
                     }
                     .pickerStyle(.inline)
                 }
@@ -118,7 +119,7 @@ struct MainWindow: View {
             }
             .menuIndicator(.hidden)
             .help("Sort By")
-            .disabled(window.isSearching || !(window.selection.map(window.canChooseSort) ?? false))
+            .disabled(window.isSearching || window.selection == nil)
         }
         ToolbarSpacer(.fixed, placement: .primaryAction)
         ToolbarItem(placement: .primaryAction) {
