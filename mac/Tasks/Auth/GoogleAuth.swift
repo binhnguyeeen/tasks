@@ -103,7 +103,7 @@ final class GoogleAuth {
         clearSession()
         guard let token, var request = Self.formRequest("https://oauth2.googleapis.com/revoke", ["token": token]) else { return }
         request.timeoutInterval = 10
-        _ = try? await URLSession.shared.data(for: request)
+        _ = try? await TasksAPI.uncachedSession.data(for: request)
     }
 
     func accessToken(forceRefresh: Bool) async throws -> String {
@@ -166,7 +166,7 @@ final class GoogleAuth {
         let data: Data
         let response: URLResponse
         do {
-            (data, response) = try await URLSession.shared.data(for: request)
+            (data, response) = try await TasksAPI.uncachedSession.data(for: request)
         } catch let error as URLError where error.isConnectivityProblem {
             throw TasksAPIError.offline
         }
