@@ -105,6 +105,14 @@ export function isEmailAllowed(allowedEmails: string | undefined, email: string 
 		.includes(wanted);
 }
 
+export function redirectWithCookies(location: string, cookies: string[] = []): Response {
+	const headers = new Headers({ location });
+	for (const cookie of cookies) {
+		headers.append("Set-Cookie", cookie);
+	}
+	return new Response(null, { status: 302, headers });
+}
+
 export function htmlPage(title: string, message: string, status = 400): Response {
 	const esc = (s: string) =>
 		s.replace(/[&<>"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[ch]!);

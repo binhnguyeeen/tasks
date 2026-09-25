@@ -7,6 +7,7 @@ import {
 	htmlPage,
 	isEmailAllowed,
 	type Props,
+	redirectWithCookies,
 	revokeGoogleToken,
 	TASKS_SCOPE,
 } from "./utils";
@@ -37,9 +38,7 @@ app.get("/authorize", async (c) => {
 	if (await isClientApproved(c.req.raw, clientId, c.env.COOKIE_ENCRYPTION_KEY)) {
 		const { stateToken } = await createOAuthState(oauthReqInfo, c.env.OAUTH_KV);
 		const { setCookie: sessionBindingCookie } = await bindStateToSession(stateToken);
-		return redirectToGoogle(c.req.raw, c.env, stateToken, {
-			"Set-Cookie": sessionBindingCookie,
-		});
+		return redirectToGoogle(c.req.raw, c.env, stateToken, [sessionBindingCookie]);
 	}
 
 	const { token: csrfToken, setCookie } = generateCSRFProtection();
@@ -89,37 +88,23 @@ app.post("/authorize", async (c) => {
 		const { stateToken } = await createOAuthState(state.oauthReqInfo, c.env.OAUTH_KV);
 		const { setCookie: sessionBindingCookie } = await bindStateToSession(stateToken);
 
-		const headers = new Headers();
-		headers.append("Set-Cookie", approvedClientCookie);
-		headers.append("Set-Cookie", sessionBindingCookie);
-
-		return redirectToGoogle(c.req.raw, c.env, stateToken, Object.fromEntries(headers));
+		return redirectToGoogle(c.req.raw, c.env, stateToken, [approvedClientCookie, sessionBindingCookie]);
 	} catch (error: any) {
 		console.error("POST /authorize error:", error);
 		if (error instanceof OAuthError) {
 			return error.toResponse();
 		}
-		return c.text(`Internal server error: ${error.message}`, 500);
+		return c.text("Something went wrong. Close this tab and try connecting again.", 500);
 	}
 });
 
-async function redirectToGoogle(
-	request: Request,
-	env: Env,
-	stateToken: string,
-	headers: Record<string, string> = {},
-) {
-	return new Response(null, {
-		headers: {
-			...headers,
-			location: getUpstreamAuthorizeUrl({
-				clientId: env.GOOGLE_CLIENT_ID,
-				redirectUri: new URL("/callback", request.url).href,
-				state: stateToken,
-			}),
-		},
-		status: 302,
+function redirectToGoogle(request: Request, env: Env, stateToken: string, cookies: string[] = []) {
+	const location = getUpstreamAuthorizeUrl({
+		clientId: env.GOOGLE_CLIENT_ID,
+		redirectUri: new URL("/callback", request.url).href,
+		state: stateToken,
 	});
+	return redirectWithCookies(location, cookies);
 }
 
 app.get("/callback", async (c) => {
