@@ -2,7 +2,7 @@ const base = import.meta.env.BASE_URL;
 
 export function SiteFooter() {
   return (
-    <footer className="border-t border-black/5 bg-zinc-50 px-5 py-8 text-xs text-zinc-500 dark:border-white/10 dark:bg-zinc-950">
+    <footer className="border-t border-black/5 bg-zinc-50 px-5 py-8 text-xs text-zinc-600 dark:border-white/10 dark:text-zinc-400 dark:bg-zinc-950">
       <div className="mx-auto flex max-w-6xl flex-col gap-3">
         <div className="flex flex-wrap gap-x-6 gap-y-2">
           <a href={`${base}help.html`} className="hover:underline">Help</a>
@@ -11,7 +11,7 @@ export function SiteFooter() {
           <a href="https://github.com/binhnguyeeen/tasks" className="hover:underline">Source on GitHub</a>
         </div>
         <p>
-          © 2026 Tasks. Tasks isn’t made, endorsed or reviewed by Google, Apple or Anthropic. Google Tasks is a
+          © 2026 Binh Nguyen. Tasks is an independent project and isn’t made, endorsed or reviewed by Google, Apple or Anthropic. Google Tasks is a
           trademark of Google LLC.
         </p>
       </div>

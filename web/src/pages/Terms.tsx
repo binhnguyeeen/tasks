@@ -3,14 +3,26 @@ import { address } from "@/lib/contact";
 
 export default function Terms() {
   return (
-    <Legal title="Terms of Service" updated="19 September 2026">
+    <Legal title="Terms of Service" updated="26 September 2026">
       <p>By using Tasks (the Mac app or the Claude connector), you agree to these terms.</p>
 
       <h2>A personal project</h2>
       <p>
-        Tasks is a free, personal, open-source project. The hosted connector is only open to Google accounts the
-        developer has allowed. Anyone may run their own copy under the{" "}
-        <a href="https://github.com/binhnguyeeen/tasks/blob/main/LICENSE">MIT license</a>.
+        Tasks is a personal, open-source project made by Binh Nguyen, an individual developer (“the developer”). The
+        hosted connector is only open to Google accounts the developer has allowed. Anyone may run their own copy under
+        the <a href="https://github.com/binhnguyeeen/tasks/blob/main/LICENSE">MIT license</a>.
+      </p>
+
+      <h2>Free, with no payments</h2>
+      <p>
+        Tasks is free. There are no fees, subscriptions, in-app purchases or ads, so there’s nothing to refund. If that
+        ever changes, the price will be shown clearly before you pay anything, and these terms will be updated first.
+      </p>
+
+      <h2>Who can use it</h2>
+      <p>
+        You need to be at least 13, or older if your country requires it for a Google account. Use Tasks only with a
+        Google account you’re allowed to use.
       </p>
 
       <h2>No warranty</h2>
