@@ -60,7 +60,7 @@ export default function Home() {
               </a>
             </div>
             <p className="mt-3 text-xs text-zinc-500 dark:text-zinc-400">
-              Free · macOS 27 or later · Apple silicon ·{" "}
+              Free · macOS 26 or later · Apple silicon ·{" "}
               <a href={`${base}guide.html#install-mac`} className="underline underline-offset-2 hover:text-zinc-900 dark:hover:text-zinc-100">
                 How to install
               </a>
