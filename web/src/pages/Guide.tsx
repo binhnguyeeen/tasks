@@ -1,5 +1,6 @@
 import { ArrowUpRight } from "lucide-react";
 import { PageIntro } from "@/components/page-intro";
+import { macDownloadURL } from "@/lib/download";
 
 const base = import.meta.env.BASE_URL;
 
@@ -46,9 +47,14 @@ export default function Guide() {
               Download it, take it past the one-time macOS security prompt, and sign in with Google. Nothing to install
               beyond dragging it to Applications.
             </p>
-            <p className="mt-8 inline-flex w-fit rounded-full border border-black/10 px-3 py-1 text-xs text-zinc-400 dark:border-white/15">
-              Coming with the first release
-            </p>
+            <div className="mt-8 flex flex-wrap gap-3">
+              <a href={macDownloadURL} className="rounded-full bg-zinc-900 px-4 py-2 text-sm text-white transition hover:bg-zinc-700 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200">
+                Download for Mac
+              </a>
+              <a href={`${base}mac.html`} className="rounded-full border border-black/10 px-4 py-2 text-sm transition hover:bg-zinc-100 dark:border-white/15 dark:hover:bg-zinc-900">
+                Install guide
+              </a>
+            </div>
           </article>
 
           <article className="flex flex-col rounded-3xl bg-zinc-50 p-8 dark:bg-zinc-950">
