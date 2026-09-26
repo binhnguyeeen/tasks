@@ -13,6 +13,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var systemIsPoweringOff = false
 
     func applicationWillFinishLaunching(_ notification: Notification) {
+        #if DEBUG
+        switch UserDefaults.standard.string(forKey: "appearance") {
+        case "light": NSApp.appearance = NSAppearance(named: .aqua)
+        case "dark": NSApp.appearance = NSAppearance(named: .darkAqua)
+        default: break
+        }
+        #endif
         MainWindowRequest.isPendingAtLaunch = !launchedAsLoginItem()
     }
 
