@@ -25,6 +25,12 @@ function enterFrom(from: Route, to: Route): Enter {
   return b > a ? "right" : "left";
 }
 
+function scrollToHash(hash: string, smooth: boolean) {
+  if (!hash) return;
+  const target = document.getElementById(decodeURIComponent(hash.slice(1)));
+  target?.scrollIntoView({ behavior: smooth && !reducedMotion() ? "smooth" : "auto", block: "start" });
+}
+
 function scrollMs(distance: number) {
   return Math.round(Math.min(360, Math.max(220, distance * 0.35)));
 }
@@ -78,8 +84,13 @@ export function App() {
   const go = useCallback(
     (next: Route, hash: string) => {
       const prev = routeRef.current;
-      if (next.id === prev.id && !hash) {
-        window.scrollTo({ behavior: reducedMotion() ? "auto" : "smooth", top: 0 });
+      if (next.id === prev.id) {
+        if (hash) {
+          window.history.pushState({ y: window.scrollY }, "", next.path + hash);
+          scrollToHash(hash, true);
+        } else {
+          window.scrollTo({ behavior: reducedMotion() ? "auto" : "smooth", top: 0 });
+        }
         return;
       }
 
@@ -92,24 +103,29 @@ export function App() {
       if (reducedMotion()) {
         window.scrollTo(0, 0);
         setRoute(next);
+        timers.current.push(window.setTimeout(() => scrollToHash(hash, false), 0));
         return;
       }
 
       const from = window.scrollY;
       if (from <= 4) {
         swap(prev, next, enter, 0);
+        timers.current.push(window.setTimeout(() => scrollToHash(hash, true), SLIDE_MS + 40));
         return;
       }
 
       const duration = scrollMs(from);
       glideToTop(duration);
       timers.current.push(window.setTimeout(() => swap(prev, next, enter, 0), duration - OVERLAP_MS));
+      timers.current.push(window.setTimeout(() => scrollToHash(hash, true), duration - OVERLAP_MS + SLIDE_MS + 40));
     },
     [clearPending, glideToTop, swap]
   );
 
   useEffect(() => {
     if ("scrollRestoration" in window.history) window.history.scrollRestoration = "manual";
+    const initialHash = window.location.hash;
+    if (initialHash) requestAnimationFrame(() => scrollToHash(initialHash, false));
 
     const onClick = (event: MouseEvent) => {
       if (event.defaultPrevented || event.button !== 0) return;
