@@ -9,7 +9,7 @@ export interface Screenshot {
 }
 
 export const windowShot: Screenshot = {
-  light: `${base}screens/window-dark.webp`,
+  light: `${base}screens/window-light.webp`,
   dark: `${base}screens/window-dark.webp`,
   width: 2000,
   height: 1397,
