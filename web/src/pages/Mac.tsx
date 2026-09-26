@@ -4,7 +4,7 @@ import { Step, Steps } from "@/components/steps";
 const base = import.meta.env.BASE_URL;
 
 const strong = "font-medium text-zinc-700 dark:text-zinc-200";
-const link = "text-sky-600 underline-offset-4 hover:underline dark:text-sky-400";
+const link = "text-sky-700 underline decoration-sky-700/40 underline-offset-4 hover:decoration-current dark:text-sky-400 dark:decoration-sky-400/40";
 
 export default function Mac() {
   return (
@@ -16,11 +16,11 @@ export default function Mac() {
       <section className="px-5 pb-16 text-center">
         <img src={`${base}icon.png`} alt="Tasks app icon" className="mx-auto size-24 drop-shadow-2xl" />
         <p className="mt-8">
-          <span className="cursor-default rounded-full border border-black/10 bg-zinc-100 px-6 py-3 text-zinc-400 dark:border-white/10 dark:bg-zinc-900 dark:text-zinc-500">
+          <span aria-disabled="true" className="cursor-default rounded-full border border-black/10 bg-zinc-100 px-6 py-3 text-zinc-600 dark:border-white/10 dark:bg-zinc-900 dark:text-zinc-400">
             Coming Soon
           </span>
         </p>
-        <p className="mt-3 text-xs text-zinc-400">Download appears here with the first release.</p>
+        <p className="mt-3 text-xs text-zinc-500 dark:text-zinc-400">Download appears here with the first release.</p>
       </section>
 
       <section className="px-5 pb-20">

@@ -5,7 +5,7 @@ import { mailto, requestAccess } from "@/lib/contact";
 
 const base = import.meta.env.BASE_URL;
 
-const link = "text-sky-600 underline-offset-4 hover:underline dark:text-sky-400";
+const link = "text-sky-700 underline decoration-sky-700/40 underline-offset-4 hover:decoration-current dark:text-sky-400 dark:decoration-sky-400/40";
 
 const questions: { q: string; a: ReactNode }[] = [
   {

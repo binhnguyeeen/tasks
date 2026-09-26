@@ -43,6 +43,9 @@ export const SwitchMode: FC<SwitchModeProps> = ({
     return (
         <motion.button
             onClick={() => setTheme(isDark ? "light" : "dark")}
+            role="switch"
+            aria-checked={isDark}
+            aria-label="Dark mode"
             className="relative flex items-center rounded-full border-2 transition-colors"
             style={{
                 width,

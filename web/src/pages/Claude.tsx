@@ -21,7 +21,7 @@ const can = [
 
 const cannot = [
   "Delete tasks or lists",
-  "See anything else in your Google account",
+  "See anything else in your Google account (the connector only checks your email address to let you in)",
   "Set due times, because Google Tasks only stores dates",
 ];
 
@@ -131,7 +131,7 @@ export default function Claude() {
             and disconnect Google Tasks. To remove Google access too, visit{" "}
             <a
               href="https://myaccount.google.com/permissions"
-              className="text-sky-600 underline-offset-4 hover:underline dark:text-sky-400"
+              className="text-sky-700 underline decoration-sky-700/40 underline-offset-4 hover:decoration-current dark:text-sky-400 dark:decoration-sky-400/40"
             >
               myaccount.google.com/permissions
             </a>

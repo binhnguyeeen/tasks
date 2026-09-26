@@ -1,5 +1,4 @@
 import { ArrowUpRight, Check, CopySlash, EyeOff, KeyRound } from "lucide-react";
-import { InlineAction } from "@/components/watermelon/inline-action";
 import { requestAccess } from "@/lib/contact";
 
 const base = import.meta.env.BASE_URL;
@@ -12,8 +11,8 @@ const privacyPoints = [
   },
   {
     icon: KeyRound,
-    title: "Only your tasks.",
-    body: "Tasks asks for Google Tasks access and nothing else in your account.",
+    title: "Only what it needs.",
+    body: "Tasks asks for your Google Tasks and your email address, nothing else in your account.",
   },
   {
     icon: EyeOff,
@@ -50,7 +49,7 @@ export default function Home() {
               A menu bar app for your tasks, and a connector that lets Claude keep track of them too.
             </p>
             <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-              <span className="cursor-default rounded-full border border-black/10 bg-zinc-100 px-6 py-3 text-zinc-400 dark:border-white/10 dark:bg-zinc-900 dark:text-zinc-500">
+              <span aria-disabled="true" className="cursor-default rounded-full border border-black/10 bg-zinc-100 px-6 py-3 text-zinc-600 dark:border-white/10 dark:bg-zinc-900 dark:text-zinc-400">
                 Coming Soon
               </span>
               <a
@@ -60,24 +59,7 @@ export default function Home() {
                 Connect Claude
               </a>
             </div>
-            <p className="mt-3 text-xs text-zinc-400">Mac app · macOS 27 or later</p>
-          </div>
-        </section>
-
-        <section className="px-5 py-8">
-          <div className="mx-auto max-w-2xl rounded-3xl border border-black/5 bg-zinc-50 p-8 text-center dark:border-white/10 dark:bg-zinc-950">
-            <p className="text-sm font-medium text-zinc-500">Connected to your Google account</p>
-            <div className="mt-5 flex justify-center">
-              <InlineAction
-                label="Google Tasks"
-                icon={<Check size={15} />}
-                actionText="Sync now"
-                onAction={() => new Promise(resolve => setTimeout(resolve, 1400))}
-              />
-            </div>
-            <p className="mt-5 text-sm text-zinc-500">
-              Changes land in Google Tasks straight away, so your phone stays in step.
-            </p>
+            <p className="mt-3 text-xs text-zinc-500 dark:text-zinc-400">Mac app · macOS 27 or later</p>
           </div>
         </section>
 
@@ -85,7 +67,7 @@ export default function Home() {
           <div className="mx-auto grid max-w-6xl gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <article className="rounded-3xl bg-zinc-50 p-8 dark:bg-zinc-950 lg:col-span-2">
               <p className="text-sm font-medium text-amber-600">Menu bar</p>
-              <h3 className="font-display mt-2 text-3xl leading-tight">Everything due, one click away.</h3>
+              <h2 className="font-display mt-2 text-3xl leading-tight">Everything due, one click away.</h2>
               <p className="mt-3 text-zinc-500 dark:text-zinc-400">
                 A checkmark in your menu bar shows how many tasks are due today or overdue. Click it to tick things off
                 or add a new one, without opening a window.
@@ -97,7 +79,7 @@ export default function Home() {
 
             <article className="rounded-3xl bg-zinc-50 p-8 dark:bg-zinc-950">
               <p className="text-sm font-medium text-amber-600">Quick add</p>
-              <h3 className="font-display mt-2 text-3xl leading-tight">Type “pay rent friday”. That’s it.</h3>
+              <h2 className="font-display mt-2 text-3xl leading-tight">Type “pay rent friday”. That’s it.</h2>
               <p className="mt-3 text-zinc-500 dark:text-zinc-400">
                 Tasks spots the date as you type and sets it as the due date.
               </p>
@@ -108,18 +90,18 @@ export default function Home() {
 
             <article className="rounded-3xl bg-zinc-50 p-8 dark:bg-zinc-950">
               <p className="text-sm font-medium text-amber-600">Smart lists</p>
-              <h3 className="font-display mt-2 text-3xl leading-tight">Today, Scheduled, All and Completed.</h3>
+              <h2 className="font-display mt-2 text-3xl leading-tight">Today, Scheduled, All and Completed.</h2>
               <div className="mt-6 flex flex-wrap gap-2 text-sm font-semibold text-white">
-                <span className="rounded-xl bg-[#007aff] px-3 py-2">Today</span>
-                <span className="rounded-xl bg-[#ff3b30] px-3 py-2">Scheduled</span>
+                <span className="rounded-xl bg-[#0040dd] px-3 py-2">Today</span>
+                <span className="rounded-xl bg-[#d70015] px-3 py-2">Scheduled</span>
                 <span className="rounded-xl bg-[#3a3a3c] px-3 py-2">All</span>
-                <span className="rounded-xl bg-[#8e8e93] px-3 py-2">Completed</span>
+                <span className="rounded-xl bg-[#6c6c70] px-3 py-2">Completed</span>
               </div>
             </article>
 
             <article className="rounded-3xl bg-zinc-50 p-8 dark:bg-zinc-950">
               <p className="text-sm font-medium text-amber-600">Lists and subtasks</p>
-              <h3 className="font-display mt-2 text-3xl leading-tight">Every list. Every subtask.</h3>
+              <h2 className="font-display mt-2 text-3xl leading-tight">Every list. Every subtask.</h2>
               <p className="mt-3 text-zinc-500 dark:text-zinc-400">
                 Create, rename and delete lists, keep subtasks under their task, and search across all of them.
               </p>
@@ -127,7 +109,7 @@ export default function Home() {
 
             <article className="rounded-3xl bg-zinc-50 p-8 dark:bg-zinc-950">
               <p className="text-sm font-medium text-amber-600">Light and dark</p>
-              <h3 className="font-display mt-2 text-3xl leading-tight">Looks right, day or night.</h3>
+              <h2 className="font-display mt-2 text-3xl leading-tight">Looks right, day or night.</h2>
               <p className="mt-3 text-zinc-500 dark:text-zinc-400">Follows your Mac’s appearance and accent color.</p>
             </article>
           </div>
@@ -143,12 +125,12 @@ export default function Home() {
             </p>
           </div>
           <div className="mx-auto mt-10 flex max-w-xl flex-col gap-3">
-            <p className="max-w-[80%] self-end rounded-3xl rounded-br-lg bg-sky-600 px-5 py-3">What’s due today?</p>
+            <p className="max-w-[80%] self-end rounded-3xl rounded-br-lg bg-sky-700 px-5 py-3">What’s due today?</p>
             <p className="max-w-[85%] rounded-3xl rounded-bl-lg bg-zinc-800 px-5 py-3">
               Two things: <strong>Send September invoice</strong> (Work) and <strong>Call mom</strong> (Home).{" "}
               <span className="text-red-400">Pay rent</span> has been overdue since yesterday.
             </p>
-            <p className="max-w-[80%] self-end rounded-3xl rounded-br-lg bg-sky-600 px-5 py-3">
+            <p className="max-w-[80%] self-end rounded-3xl rounded-br-lg bg-sky-700 px-5 py-3">
               I paid the rent. Tick it off.
             </p>
             <p className="max-w-[85%] rounded-3xl rounded-bl-lg bg-zinc-800 px-5 py-3">

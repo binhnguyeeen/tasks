@@ -8,7 +8,7 @@ export function Step({ n, title, children }: { n: number; title: string; childre
   return (
     <li className="rounded-3xl bg-zinc-50 p-7 dark:bg-zinc-950 sm:p-8">
       <div className="flex items-baseline gap-4">
-        <span className="font-display shrink-0 text-2xl text-zinc-300 tabular-nums dark:text-zinc-700">
+        <span aria-hidden="true" className="font-display shrink-0 text-2xl text-zinc-500 tabular-nums">
           {String(n).padStart(2, "0")}
         </span>
         <div className="min-w-0 flex-1">

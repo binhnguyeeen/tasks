@@ -85,7 +85,7 @@ export default function Guide() {
       <section className="px-5 py-20 text-center">
         <p className="text-zinc-500 dark:text-zinc-400">
           Something not covered here?{" "}
-          <a href={`${base}help.html`} className="text-sky-600 underline-offset-4 hover:underline dark:text-sky-400">
+          <a href={`${base}help.html`} className="text-sky-700 underline decoration-sky-700/40 underline-offset-4 hover:decoration-current dark:text-sky-400 dark:decoration-sky-400/40">
             Check the Help page
           </a>
           .
