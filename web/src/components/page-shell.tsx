@@ -4,6 +4,7 @@ import { SiteNav } from "@/components/site-nav";
 import { SiteFooter } from "@/components/site-footer";
 import { CursorFollower } from "@/components/cursor";
 import { FloatingNav } from "@/components/floating-nav";
+import { MailPanel } from "@/components/mail-panel";
 
 export function PageShell({
   current,
@@ -24,6 +25,7 @@ export function PageShell({
         </main>
         <FloatingNav current={current} />
         <SiteFooter />
+        <MailPanel />
       </div>
     </ThemeProvider>
   );

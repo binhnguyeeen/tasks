@@ -1,5 +1,5 @@
 import { ArrowUpRight, Check, CopySlash, EyeOff, KeyRound } from "lucide-react";
-import { requestAccess } from "@/lib/contact";
+import { requestAccess } from "@/lib/request-access";
 
 const base = import.meta.env.BASE_URL;
 

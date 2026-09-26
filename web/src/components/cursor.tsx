@@ -12,7 +12,7 @@ export function CursorFollower() {
   const startRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
-    if (window.matchMedia("(pointer: coarse)").matches) return;
+    if (window.matchMedia("(pointer: coarse), (prefers-reduced-motion: reduce)").matches) return;
     document.documentElement.classList.add("cursor-hidden");
 
     const move = (e: PointerEvent) => {
