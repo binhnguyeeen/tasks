@@ -1,7 +1,7 @@
 import { ArrowUpRight, Check, X } from "lucide-react";
 import { PageIntro } from "@/components/page-intro";
 import { Step, Steps } from "@/components/steps";
-import { requestAccess } from "@/lib/contact";
+import { requestAccess } from "@/lib/request-access";
 
 const base = import.meta.env.BASE_URL;
 

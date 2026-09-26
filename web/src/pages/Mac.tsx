@@ -50,7 +50,7 @@ export default function Mac() {
               Click the checkmark in the menu bar, then <strong className={strong}>Sign In with Google…</strong>, and
               pick your account. Google warns that it hasn’t verified the app: click{" "}
               <strong className={strong}>Advanced</strong>, then <strong className={strong}>Go to Tasks</strong>. Tasks
-              only asks for access to Google Tasks.
+              only asks for your Google Tasks and your email address.
             </p>
           </Step>
           <Step n={5} title="Done">

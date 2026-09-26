@@ -1,7 +1,8 @@
-import type { ReactNode } from "react";
+import { useId, useState, type ReactNode } from "react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { Plus } from "lucide-react";
 import { PageIntro } from "@/components/page-intro";
-import { mailto, requestAccess } from "@/lib/contact";
+import { reportProblem, requestAccess } from "@/lib/request-access";
 
 const base = import.meta.env.BASE_URL;
 
@@ -13,7 +14,7 @@ const questions: { q: string; a: ReactNode }[] = [
     a: (
       <>
         Google reviews apps before removing that warning, and Tasks hasn’t been through that review yet. The warning
-        doesn’t mean anything is wrong. Tasks only asks for access to Google Tasks.
+        doesn’t mean anything is wrong. Tasks only asks for your Google Tasks and your email address.
       </>
     ),
   },
@@ -95,14 +96,68 @@ const questions: { q: string; a: ReactNode }[] = [
           Open an issue on GitHub
         </a>{" "}
         or{" "}
-        <a href={mailto("Tasks: something isn’t working")} className={link}>
+        <button type="button" onClick={reportProblem} className={link}>
           send an email
-        </a>
+        </button>
         .
       </>
     ),
   },
 ];
+
+function Question({ question, children }: { question: string; children: ReactNode }) {
+  const [open, setOpen] = useState(false);
+  const answerID = useId();
+  const reduceMotion = useReducedMotion();
+  const spring = reduceMotion ? { duration: 0 } : { type: "spring" as const, stiffness: 420, damping: 40 };
+
+  return (
+    <div className="px-7 sm:px-8">
+      <h2>
+        <button
+          type="button"
+          aria-expanded={open}
+          aria-controls={answerID}
+          onClick={() => setOpen(!open)}
+          className="flex w-full items-center justify-between gap-6 py-6 text-left text-lg font-medium"
+        >
+          {question}
+          <motion.span
+            aria-hidden="true"
+            className="shrink-0 text-zinc-500 dark:text-zinc-400"
+            animate={{ rotate: open ? 45 : 0 }}
+            transition={spring}
+          >
+            <Plus size={18} />
+          </motion.span>
+        </button>
+      </h2>
+      <AnimatePresence initial={false}>
+        {open && (
+          <motion.div
+            id={answerID}
+            key="answer"
+            className="overflow-hidden"
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={spring}
+          >
+            <motion.p
+              className="pb-6 pr-10 text-pretty text-zinc-600 dark:text-zinc-400"
+              initial={reduceMotion ? false : { y: -8 }}
+              animate={{ y: 0 }}
+              exit={reduceMotion ? undefined : { y: -8 }}
+              transition={spring}
+            >
+              {children}
+            </motion.p>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
 
 export default function Help() {
   return (
@@ -114,16 +169,9 @@ export default function Help() {
       <section className="px-5 pb-28">
         <div className="mx-auto max-w-3xl divide-y divide-black/5 overflow-hidden rounded-3xl bg-zinc-50 dark:divide-white/10 dark:bg-zinc-950">
           {questions.map(item => (
-            <details key={item.q} className="group px-7 py-1 sm:px-8">
-              <summary className="flex list-none items-center justify-between gap-6 py-5 text-left text-lg font-medium marker:hidden [&::-webkit-details-marker]:hidden">
-                {item.q}
-                <Plus
-                  size={18}
-                  className="shrink-0 text-zinc-400 transition-transform duration-200 group-open:rotate-45 motion-reduce:transition-none"
-                />
-              </summary>
-              <p className="pb-6 pr-10 text-pretty text-zinc-500 dark:text-zinc-400">{item.a}</p>
-            </details>
+            <Question key={item.q} question={item.q}>
+              {item.a}
+            </Question>
           ))}
         </div>
 
