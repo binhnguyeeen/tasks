@@ -1,5 +1,7 @@
 import { ArrowUpRight, Check, CopySlash, EyeOff, KeyRound } from "lucide-react";
+import { ThemedShot } from "@/components/themed-shot";
 import { macDownloadURL } from "@/lib/download";
+import { menuShot, windowShot } from "@/lib/screens";
 import { requestAccess } from "@/lib/request-access";
 
 const base = import.meta.env.BASE_URL;
@@ -64,19 +66,27 @@ export default function Home() {
               </a>
             </p>
           </div>
+          <div className="relative mx-auto mt-14 max-w-5xl">
+            <ThemedShot shot={windowShot} priority />
+          </div>
         </section>
 
         <section className="px-5 py-20">
           <div className="mx-auto grid max-w-6xl gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            <article className="rounded-3xl bg-zinc-50 p-8 dark:bg-zinc-950 lg:col-span-2">
-              <p className="text-sm font-medium text-amber-600">Menu bar</p>
-              <h2 className="font-display mt-2 text-3xl leading-tight">Everything due, one click away.</h2>
-              <p className="mt-3 text-zinc-500 dark:text-zinc-400">
-                A checkmark in your menu bar shows how many tasks are due today or overdue. Click it to tick things off
-                or add a new one, without opening a window.
-              </p>
-              <div className="mt-10 inline-flex items-center gap-3 rounded-full bg-zinc-900 px-6 py-3 text-3xl font-semibold text-white tabular-nums dark:bg-zinc-100 dark:text-zinc-900">
-                <Check size={30} />3
+            <article className="flex flex-col gap-8 rounded-3xl bg-zinc-50 p-8 dark:bg-zinc-950 sm:flex-row sm:items-center lg:col-span-2">
+              <div className="flex-1">
+                <p className="text-sm font-medium text-amber-600">Menu bar</p>
+                <h2 className="font-display mt-2 text-3xl leading-tight">Everything due, one click away.</h2>
+                <p className="mt-3 text-zinc-500 dark:text-zinc-400">
+                  A checkmark in your menu bar shows how many tasks are due today or overdue. Click it to tick things
+                  off or add a new one, without opening a window.
+                </p>
+                <div className="mt-8 inline-flex items-center gap-3 rounded-full bg-zinc-900 px-5 py-2.5 text-2xl font-semibold text-white tabular-nums dark:bg-zinc-100 dark:text-zinc-900">
+                  <Check size={24} />4
+                </div>
+              </div>
+              <div className="mx-auto w-full max-w-[18rem] shrink-0 sm:w-[45%]">
+                <ThemedShot shot={menuShot} />
               </div>
             </article>
 
