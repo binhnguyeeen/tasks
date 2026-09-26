@@ -17,7 +17,7 @@ export const windowShot: Screenshot = {
 };
 
 export const menuShot: Screenshot = {
-  light: `${base}screens/menu-dark.png`,
+  light: `${base}screens/menu-light.png`,
   dark: `${base}screens/menu-dark.png`,
   width: 772,
   height: 820,
