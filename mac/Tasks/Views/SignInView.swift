@@ -23,7 +23,7 @@ struct SignInView: View {
             VStack(spacing: 6) {
                 Text("Connect Google Tasks")
                     .font(size == .window ? .title2.bold() : .headline)
-                Text("Sign in with your Google account to see and edit your tasks. Tasks can’t see anything else in your account.")
+                Text("Sign in with your Google account to see and edit your tasks. Tasks only sees your tasks and your email address.")
                     .font(size == .window ? .body : .callout)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)

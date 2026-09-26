@@ -446,12 +446,12 @@ final class TaskStore {
         let center = NotificationCenter.default
         observers.append(center.addObserver(forName: NSApplication.didBecomeActiveNotification, object: nil, queue: .main) { [weak self] _ in
             MainActor.assumeIsolated {
-                Task { await self?.refreshIfStale() }
+                _ = Task { await self?.refreshIfStale() }
             }
         })
         observers.append(center.addObserver(forName: NSWindow.didBecomeKeyNotification, object: nil, queue: .main) { [weak self] _ in
             MainActor.assumeIsolated {
-                Task { await self?.refreshIfStale() }
+                _ = Task { await self?.refreshIfStale() }
             }
         })
         observers.append(center.addObserver(forName: .NSCalendarDayChanged, object: nil, queue: .main) { [weak self] _ in
