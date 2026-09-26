@@ -18,7 +18,7 @@ export function MacInstall() {
           Download Tasks.zip
         </a>
         <p className="text-xs text-zinc-500 dark:text-zinc-400">
-          Free · macOS 27 or later · Apple silicon ·{" "}
+          Free · macOS 26 or later · Apple silicon ·{" "}
           <a
             href="https://github.com/binhnguyeeen/tasks/releases"
             className="underline underline-offset-2 hover:text-zinc-900 dark:hover:text-zinc-100"
