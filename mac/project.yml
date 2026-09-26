@@ -57,6 +57,7 @@ targets:
           APP_DISPLAY_NAME: Tasks (Debug)
         Release:
           APP_DISPLAY_NAME: Tasks
+          CODE_SIGN_INJECT_BASE_ENTITLEMENTS: NO
   TasksTests:
     type: bundle.unit-test
     platform: macOS
