@@ -1,4 +1,5 @@
 import { ArrowUpRight, Check, CopySlash, EyeOff, KeyRound } from "lucide-react";
+import { macDownloadURL } from "@/lib/download";
 import { requestAccess } from "@/lib/request-access";
 
 const base = import.meta.env.BASE_URL;
@@ -49,17 +50,19 @@ export default function Home() {
               A menu bar app for your tasks, and a connector that lets Claude keep track of them too.
             </p>
             <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-              <span aria-disabled="true" className="cursor-default rounded-full border border-black/10 bg-zinc-100 px-6 py-3 text-zinc-600 dark:border-white/10 dark:bg-zinc-900 dark:text-zinc-400">
-                Coming Soon
-              </span>
-              <a
-                href={`${base}claude.html`}
-                className="rounded-full bg-zinc-900 px-6 py-3 text-white transition hover:bg-zinc-700 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200"
-              >
+              <a href={macDownloadURL} className="rounded-full bg-zinc-900 px-6 py-3 text-white transition hover:bg-zinc-700 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200">
+                Download for Mac
+              </a>
+              <a href={`${base}claude.html`} className="rounded-full border border-black/10 px-6 py-3 transition hover:bg-zinc-100 dark:border-white/15 dark:hover:bg-zinc-900">
                 Connect Claude
               </a>
             </div>
-            <p className="mt-3 text-xs text-zinc-500 dark:text-zinc-400">Mac app · macOS 27 or later</p>
+            <p className="mt-3 text-xs text-zinc-500 dark:text-zinc-400">
+              Free · macOS 27 or later · Apple silicon ·{" "}
+              <a href={`${base}mac.html`} className="underline underline-offset-2 hover:text-zinc-900 dark:hover:text-zinc-100">
+                How to install
+              </a>
+            </p>
           </div>
         </section>
 
