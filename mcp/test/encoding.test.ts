@@ -16,4 +16,8 @@ describe("encodeBase64 and decodeBase64", () => {
 		const decoded = decodeBase64(encoded);
 		expect(decoded).toBe(unicodeString);
 	});
+
+	it("throws on bytes that aren't valid UTF-8, so callers reject tampered input", () => {
+		expect(() => decodeBase64(btoa("\xff\xfe"))).toThrow();
+	});
 });

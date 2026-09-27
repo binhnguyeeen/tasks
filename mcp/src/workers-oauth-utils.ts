@@ -49,10 +49,9 @@ export interface ValidateCSRFResult {
 }
 
 export function encodeBase64(str: string): string {
-	const bytes = new TextEncoder().encode(str);
 	let bin = "";
-	for (let i = 0; i < bytes.length; i++) {
-		bin += String.fromCharCode(bytes[i]);
+	for (const byte of new TextEncoder().encode(str)) {
+		bin += String.fromCharCode(byte);
 	}
 	return btoa(bin);
 }
@@ -63,7 +62,7 @@ export function decodeBase64(base64: string): string {
 	for (let i = 0; i < bin.length; i++) {
 		bytes[i] = bin.charCodeAt(i);
 	}
-	return new TextDecoder().decode(bytes);
+	return new TextDecoder("utf-8", { fatal: true, ignoreBOM: false }).decode(bytes);
 }
 
 export function sanitizeText(text: string): string {

@@ -182,7 +182,8 @@ final class TaskStore {
     func setDone(_ id: String, _ done: Bool) {
         guard canEdit, let index = index(of: id), !tasks[index].isPending, tasks[index].isDone != done else { return }
         let parent = tasks[index]
-        let subtasks = done ? tasks.filter { $0.parentID == id && !$0.isDone && !$0.isPending } : []
+        let family = done ? descendantIDs(of: id).subtracting([id]) : []
+        let subtasks = tasks.filter { family.contains($0.id) && !$0.isDone && !$0.isPending }
         let before = [parent] + subtasks
         let now = Date.now
         for task in before {
@@ -292,16 +293,12 @@ final class TaskStore {
     }
 
     private func descendantIDs(of parentID: String) -> Set<String> {
+        let children = Dictionary(grouping: tasks.filter { $0.parentID != nil }) { $0.parentID ?? "" }
         var result: Set<String> = [parentID]
-        var queue = [parentID]
-        while !queue.isEmpty {
-            let current = queue.removeFirst()
-            let children = tasks.filter { $0.parentID == current }.map(\.id)
-            for childID in children {
-                if !result.contains(childID) {
-                    result.insert(childID)
-                    queue.append(childID)
-                }
+        var stack = [parentID]
+        while let current = stack.popLast() {
+            for child in children[current] ?? [] where result.insert(child.id).inserted {
+                stack.append(child.id)
             }
         }
         return result
@@ -334,7 +331,7 @@ final class TaskStore {
         let toRemove = descendantIDs(of: id)
         let removed = tasks.filter { toRemove.contains($0.id) }
         tasks.removeAll { toRemove.contains($0.id) }
-        mutate([id], failure: "Couldn’t delete “\(task.title)”. Check your connection.") { [api] in
+        mutate(Array(toRemove), failure: "Couldn’t delete “\(task.title)”. Check your connection.") { [api] in
             try await api.deleteTask(id, in: task.listID)
         } undo: {
             self.tasks += removed
