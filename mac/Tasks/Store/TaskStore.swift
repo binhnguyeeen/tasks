@@ -291,11 +291,28 @@ final class TaskStore {
         tasks = tasks.filter { $0.listID != listID || ($0.isPending && busy.contains($0.id)) } + fresh
     }
 
+    private func descendantIDs(of parentID: String) -> Set<String> {
+        var result: Set<String> = [parentID]
+        var queue = [parentID]
+        while !queue.isEmpty {
+            let current = queue.removeFirst()
+            let children = tasks.filter { $0.parentID == current }.map(\.id)
+            for childID in children {
+                if !result.contains(childID) {
+                    result.insert(childID)
+                    queue.append(childID)
+                }
+            }
+        }
+        return result
+    }
+
     func moveTask(_ id: String, to destinationID: String) {
         guard canEdit, let task = task(id), !task.isPending, task.listID != destinationID,
               !destinationID.hasPrefix("local-"), list(destinationID) != nil
         else { return }
-        let before = tasks.filter { $0.id == id || $0.parentID == id }
+        let toMove = descendantIDs(of: id)
+        let before = tasks.filter { toMove.contains($0.id) }
         for moved in before {
             guard let i = index(of: moved.id) else { continue }
             tasks[i].listID = destinationID
@@ -314,8 +331,9 @@ final class TaskStore {
 
     func deleteTask(_ id: String) {
         guard canEdit, let task = task(id), !task.isPending else { return }
-        let removed = tasks.filter { $0.id == id || $0.parentID == id }
-        tasks.removeAll { $0.id == id || $0.parentID == id }
+        let toRemove = descendantIDs(of: id)
+        let removed = tasks.filter { toRemove.contains($0.id) }
+        tasks.removeAll { toRemove.contains($0.id) }
         mutate([id], failure: "Couldn’t delete “\(task.title)”. Check your connection.") { [api] in
             try await api.deleteTask(id, in: task.listID)
         } undo: {
