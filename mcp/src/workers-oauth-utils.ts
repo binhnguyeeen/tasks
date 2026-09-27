@@ -48,6 +48,23 @@ export interface ValidateCSRFResult {
 	clearCookie: string;
 }
 
+export function encodeBase64(str: string): string {
+	let bin = "";
+	for (const byte of new TextEncoder().encode(str)) {
+		bin += String.fromCharCode(byte);
+	}
+	return btoa(bin);
+}
+
+export function decodeBase64(base64: string): string {
+	const bin = atob(base64);
+	const bytes = new Uint8Array(bin.length);
+	for (let i = 0; i < bin.length; i++) {
+		bytes[i] = bin.charCodeAt(i);
+	}
+	return new TextDecoder("utf-8", { fatal: true, ignoreBOM: false }).decode(bytes);
+}
+
 export function sanitizeText(text: string): string {
 	return text
 		.replace(/&/g, "&amp;")
@@ -234,7 +251,7 @@ export async function addApprovedClient(
 
 	const payload = JSON.stringify(updatedApprovedClients);
 	const signature = await signData(payload, cookieSecret);
-	const cookieValue = `${signature}.${btoa(payload)}`;
+	const cookieValue = `${signature}.${encodeBase64(payload)}`;
 
 	return `${approvedClientsCookieName}=${cookieValue}; HttpOnly; Secure; Path=/; SameSite=Lax; Max-Age=${THIRTY_DAYS_IN_SECONDS}`;
 }
@@ -254,7 +271,7 @@ export interface ApprovalDialogOptions {
 export function renderApprovalDialog(request: Request, options: ApprovalDialogOptions): Response {
 	const { client, server, state, csrfToken, setCookie } = options;
 
-	const encodedState = btoa(JSON.stringify(state));
+	const encodedState = encodeBase64(JSON.stringify(state));
 
 	const serverName = sanitizeText(server.name);
 	const clientName = client?.clientName ? sanitizeText(client.clientName) : "Unknown MCP Client";
@@ -603,7 +620,7 @@ async function getApprovedClientsFromCookie(
 
 	let payload: string;
 	try {
-		payload = atob(base64Payload);
+		payload = decodeBase64(base64Payload);
 	} catch {
 		return null;
 	}

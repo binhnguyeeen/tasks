@@ -126,10 +126,11 @@ export function registerTools(server: McpServer, deps: ToolDeps) {
 			annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
 		},
 		run(async ({ title, due, notes, list_id, parent, timezone }) => {
+			const cleanParent = parent?.trim() || undefined;
 			const task = await client.insertTask(
 				list_id,
 				{ title, notes, due: due ? toGoogleDue(due) : undefined },
-				parent,
+				cleanParent,
 			);
 			return json({ created: toTodo(task, list_id, today(timezone)) });
 		}),

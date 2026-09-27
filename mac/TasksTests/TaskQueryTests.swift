@@ -313,3 +313,38 @@ struct ReorderTests {
         ])
     }
 }
+
+@MainActor
+struct DescendantTests {
+    private func makeStore() throws -> (TaskStore, grandchild: String) {
+        let auth = GoogleAuth(keychain: Keychain(service: "com.binhnguyen.tasks.tests"))
+        auth.useSampleAccount()
+        let store = TaskStore(auth: auth, connectivity: Connectivity())
+        store.loadSampleData()
+        let grandchild = try #require(store.addTask(title: "Pack passport", listID: "sample-my-tasks", parentID: "sample-book-flights"))
+        return (store, grandchild)
+    }
+
+    @Test func deletingATaskRemovesEveryLevelBelowIt() throws {
+        let (store, grandchild) = try makeStore()
+        store.deleteTask("sample-plan-trip")
+        #expect(store.task("sample-plan-trip") == nil)
+        #expect(store.task("sample-book-flights") == nil)
+        #expect(store.task(grandchild) == nil)
+        #expect(store.task("sample-pay-rent") != nil)
+    }
+
+    @Test func completingATaskCompletesEveryLevelBelowIt() throws {
+        let (store, grandchild) = try makeStore()
+        store.setDone("sample-plan-trip", true)
+        #expect(store.task("sample-book-hotel")?.isDone == true)
+        #expect(store.task(grandchild)?.isDone == true)
+    }
+
+    @Test func movingATaskTakesEveryLevelBelowIt() throws {
+        let (store, grandchild) = try makeStore()
+        store.moveTask("sample-plan-trip", to: "sample-work")
+        #expect(store.task(grandchild)?.listID == "sample-work")
+        #expect(store.task(grandchild)?.parentID == "sample-book-flights")
+    }
+}

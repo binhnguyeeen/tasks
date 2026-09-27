@@ -15,6 +15,7 @@ import {
 	addApprovedClient,
 	bindStateToSession,
 	createOAuthState,
+	decodeBase64,
 	generateCSRFProtection,
 	isClientApproved,
 	OAuthError,
@@ -70,7 +71,7 @@ app.post("/authorize", async (c) => {
 
 		let state: { oauthReqInfo?: AuthRequest };
 		try {
-			state = JSON.parse(atob(encodedState));
+			state = JSON.parse(decodeBase64(encodedState));
 		} catch (_e) {
 			return c.text("Invalid state data", 400);
 		}
