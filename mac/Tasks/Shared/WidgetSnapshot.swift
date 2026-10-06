@@ -20,11 +20,14 @@ nonisolated struct WidgetSnapshot: Codable, Equatable, Sendable {
     var open: [Item]
     var openCount: Int
 
-    static var fileURL: URL? {
+    static var folderURL: URL? {
         guard let home = getpwuid(getuid())?.pointee.pw_dir else { return nil }
         return URL(filePath: String(cString: home), directoryHint: .isDirectory)
             .appending(path: folder, directoryHint: .isDirectory)
-            .appending(path: fileName)
+    }
+
+    static var fileURL: URL? {
+        folderURL?.appending(path: fileName)
     }
 
     static func load() -> WidgetSnapshot? {

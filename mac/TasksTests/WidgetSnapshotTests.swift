@@ -31,3 +31,26 @@ struct WidgetSnapshotTests {
         #expect(due.today.map(\.title) == ["Send September invoice", "Call mom"])
     }
 }
+
+struct WidgetTicksTests {
+    private let start = Date(timeIntervalSince1970: 1_000_000)
+
+    @Test func aTickShowsDoneForFiveSecondsThenHides() {
+        let ticks = WidgetTicks(times: ["rent": start])
+        #expect(ticks.ticked(at: start) == ["rent"])
+        #expect(ticks.ticked(at: start.addingTimeInterval(4.9)) == ["rent"])
+        #expect(ticks.hidden(at: start.addingTimeInterval(4.9)).isEmpty)
+        #expect(ticks.ticked(at: start.addingTimeInterval(5)).isEmpty)
+        #expect(ticks.hidden(at: start.addingTimeInterval(5)) == ["rent"])
+    }
+
+    @Test func theTimelineChangesWhenEachTickRunsOut() {
+        let ticks = WidgetTicks(times: [
+            "rent": start,
+            "mom": start.addingTimeInterval(2),
+            "old": start.addingTimeInterval(-30),
+        ])
+        #expect(ticks.changeDates(after: start) == [start.addingTimeInterval(5), start.addingTimeInterval(7)])
+        #expect(ticks.hidden(at: start) == ["old"])
+    }
+}

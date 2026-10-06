@@ -8,6 +8,9 @@ final class WidgetBridge {
     private let store: TaskStore
     private var written: WidgetSnapshot?
     private var pendingWrite: Task<Void, Never>?
+    private var tickSource: DispatchSourceFileSystemObject?
+    private var savedTicks: Set<String> = []
+    private var pendingTickCheck: Task<Void, Never>?
 
     init(store: TaskStore) {
         self.store = store
@@ -15,7 +18,8 @@ final class WidgetBridge {
 
     func start() {
         observeStore()
-        scheduleWrite()
+        watchTicks()
+        processTicks()
     }
 
     static func snapshot(of store: TaskStore) -> WidgetSnapshot {
@@ -64,7 +68,7 @@ final class WidgetBridge {
         } onChange: { [weak self] in
             Task { @MainActor in
                 self?.observeStore()
-                self?.scheduleWrite()
+                self?.processTicks()
             }
         }
     }
@@ -81,12 +85,59 @@ final class WidgetBridge {
     private func write() {
         guard store.hasLoaded || !store.auth.isSignedIn else { return }
         let snapshot = Self.snapshot(of: store)
-        guard snapshot != written else { return }
-        do {
-            try snapshot.save()
-            written = snapshot
-            WidgetCenter.shared.reloadAllTimelines()
-        } catch {
+        if snapshot != written {
+            do {
+                try snapshot.save()
+                written = snapshot
+            } catch {
+                return
+            }
+        } else if savedTicks.isEmpty {
+            return
         }
+        if !savedTicks.isEmpty {
+            WidgetTicks.remove(savedTicks)
+            savedTicks = []
+        }
+        WidgetCenter.shared.reloadAllTimelines()
+    }
+
+    private func watchTicks() {
+        guard let folder = WidgetTicks.folderURL else { return }
+        try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        let descriptor = open(folder.path(percentEncoded: false), O_EVTONLY)
+        guard descriptor >= 0 else { return }
+        let source = DispatchSource.makeFileSystemObjectSource(fileDescriptor: descriptor, eventMask: .write, queue: .main)
+        source.setEventHandler { [weak self] in
+            MainActor.assumeIsolated { self?.processTicks() }
+        }
+        source.setCancelHandler { close(descriptor) }
+        source.resume()
+        tickSource = source
+    }
+
+    private func processTicks() {
+        let ticks = WidgetTicks.load()
+        let now = Date.now
+        savedTicks.formIntersection(ticks.times.keys)
+        for id in ticks.hidden(at: now).subtracting(savedTicks) {
+            let currentID = store.currentID(id)
+            guard let task = store.task(currentID), !task.isDone else {
+                if store.hasLoaded { savedTicks.insert(id) }
+                continue
+            }
+            guard store.canEdit, !task.isPending else { continue }
+            store.setDone(currentID, true)
+            savedTicks.insert(id)
+        }
+        pendingTickCheck?.cancel()
+        if let next = ticks.changeDates(after: now).first {
+            pendingTickCheck = Task { [weak self] in
+                try? await Task.sleep(for: .seconds(max(next.timeIntervalSinceNow, 0) + 0.1))
+                guard !Task.isCancelled else { return }
+                self?.processTicks()
+            }
+        }
+        scheduleWrite()
     }
 }

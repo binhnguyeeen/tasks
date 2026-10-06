@@ -84,7 +84,7 @@ targets:
       path: TasksWidget/TasksWidget.entitlements
       properties:
         com.apple.security.app-sandbox: true
-        com.apple.security.temporary-exception.files.home-relative-path.read-only:
+        com.apple.security.temporary-exception.files.home-relative-path.read-write:
           - /Library/Application Support/com.binhnguyen.tasks.widget/
     settings:
       base:

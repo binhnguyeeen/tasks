@@ -36,11 +36,34 @@ struct OpenWidget: Widget {
 struct SnapshotEntry: TimelineEntry {
     var date: Date
     var snapshot: WidgetSnapshot?
+    var ticked: Set<String> = []
+    var hidden: Set<String> = []
+
+    init(date: Date, snapshot: WidgetSnapshot?, ticks: WidgetTicks = WidgetTicks(times: [:])) {
+        self.date = date
+        self.snapshot = snapshot
+        ticked = ticks.ticked(at: date)
+        hidden = ticks.hidden(at: date)
+    }
 
     var today: Day { Day(date) }
 
     var due: (overdue: [WidgetSnapshot.Item], today: [WidgetSnapshot.Item]) {
-        snapshot?.due(on: today) ?? ([], [])
+        guard let due = snapshot?.due(on: today) else { return ([], []) }
+        return (due.overdue.filter(isShown), due.today.filter(isShown))
+    }
+
+    var open: [WidgetSnapshot.Item] {
+        (snapshot?.open ?? []).filter(isShown)
+    }
+
+    var openCount: Int {
+        let gone = (snapshot?.open ?? []).count { hidden.contains($0.id) || ticked.contains($0.id) }
+        return max((snapshot?.openCount ?? 0) - gone, 0)
+    }
+
+    private func isShown(_ item: WidgetSnapshot.Item) -> Bool {
+        !hidden.contains(item.id)
     }
 
     static let placeholder: SnapshotEntry = {
@@ -73,9 +96,11 @@ struct SnapshotProvider: TimelineProvider {
 
     func getTimeline(in context: Context, completion: @escaping (Timeline<SnapshotEntry>) -> Void) {
         let snapshot = WidgetSnapshot.load()
+        let ticks = WidgetTicks.load()
         let now = Date.now
         let midnight = Calendar.current.startOfDay(for: now.addingTimeInterval(86_400))
-        let entries = [SnapshotEntry(date: now, snapshot: snapshot), SnapshotEntry(date: midnight, snapshot: snapshot)]
+        let dates = [now] + ticks.changeDates(after: now).filter { $0 < midnight } + [midnight]
+        let entries = dates.map { SnapshotEntry(date: $0, snapshot: snapshot, ticks: ticks) }
         completion(Timeline(entries: entries, policy: .after(midnight.addingTimeInterval(3_600))))
     }
 }
@@ -93,7 +118,7 @@ struct DueWidgetView: View {
             symbol: "calendar",
             tint: .blue,
             rows: rows,
-            total: rows.count,
+            total: rows.count { !entry.ticked.contains($0.id) },
             emptyText: "Nothing due."
         ) { item in
             let overdue = Day(googleDue: item.due).map { $0 < entry.today } ?? false
@@ -112,8 +137,8 @@ struct OpenWidgetView: View {
             title: "Open",
             symbol: "tray.fill",
             tint: .gray,
-            rows: entry.snapshot?.open ?? [],
-            total: entry.snapshot?.openCount ?? 0,
+            rows: entry.open,
+            total: entry.openCount,
             emptyText: "All done."
         ) { item in
             guard family != .systemSmall, let day = Day(googleDue: item.due) else { return .list }
@@ -145,16 +170,24 @@ struct TaskWidgetLayout: View {
                 message("Open Tasks to sign in.")
             } else if rows.isEmpty {
                 message(emptyText)
+                    .transition(.opacity)
             } else {
+                let shown = rows.prefix(rowLimit)
+                let more = total - shown.count { !entry.ticked.contains($0.id) }
                 VStack(alignment: .leading, spacing: family == .systemSmall ? 5 : 7) {
-                    ForEach(rows.prefix(rowLimit)) { item in
+                    ForEach(shown) { item in
                         row(item)
+                            .transition(.asymmetric(
+                                insertion: .opacity,
+                                removal: .move(edge: .leading).combined(with: .opacity)
+                            ))
                     }
                 }
-                if total > min(rows.count, rowLimit) {
-                    Text("\(total - min(rows.count, rowLimit)) more")
+                if more > 0 {
+                    Text("\(more) more")
                         .font(.caption)
                         .foregroundStyle(.secondary)
+                        .contentTransition(.numericText())
                 }
             }
             Spacer(minLength: 0)
@@ -181,6 +214,7 @@ struct TaskWidgetLayout: View {
                     .font(.title2.bold())
                     .monospacedDigit()
                     .foregroundStyle(tint)
+                    .contentTransition(.numericText())
             }
         }
     }
@@ -193,17 +227,26 @@ struct TaskWidgetLayout: View {
 
     private func row(_ item: WidgetSnapshot.Item) -> some View {
         let color = (ListColor(rawValue: item.color) ?? .blue).color
+        let isTicked = entry.ticked.contains(item.id)
+        let title = item.title.isEmpty ? "Untitled Task" : item.title
         return HStack(spacing: 6) {
-            Image(systemName: "circle")
-                .foregroundStyle(color)
-                .imageScale(.small)
-            Text(item.title.isEmpty ? "Untitled Task" : item.title)
+            Button(intent: TickTaskIntent(taskID: item.id)) {
+                Image(systemName: isTicked ? "checkmark.circle.fill" : "circle")
+                    .foregroundStyle(color)
+                    .imageScale(family == .systemSmall ? .small : .medium)
+                    .contentTransition(.symbolEffect(.replace))
+                    .frame(minWidth: 16, minHeight: 16)
+                    .contentShape(.rect)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(isTicked ? "Mark “\(title)” as Not Done" : "Mark “\(title)” as Done")
+            Text(title)
                 .font(family == .systemSmall ? .caption : .callout)
+                .foregroundStyle(isTicked ? .secondary : .primary)
                 .lineLimit(1)
             Spacer(minLength: 4)
             trailing(item)
         }
-        .accessibilityElement(children: .combine)
     }
 
     @ViewBuilder
