@@ -3,6 +3,7 @@ import Home from "@/pages/Home";
 import Guide from "@/pages/Guide";
 import Claude from "@/pages/Claude";
 import Help from "@/pages/Help";
+import Changelog from "@/pages/Changelog";
 import Mac from "@/pages/Mac";
 import Privacy from "@/pages/Privacy";
 import Terms from "@/pages/Terms";
@@ -46,6 +47,13 @@ export const routes: Route[] = [
     title: "Help · Tasks",
     description: "Common questions about the Tasks Mac app and the Google Tasks connector for Claude.",
     Component: Help,
+  },
+  {
+    id: "changelog",
+    path: `${base}changelog.html`,
+    title: "Changelog · Tasks",
+    description: "Every update to the Tasks Mac app and the Claude connector, newest first.",
+    Component: Changelog,
   },
   {
     id: "mac",

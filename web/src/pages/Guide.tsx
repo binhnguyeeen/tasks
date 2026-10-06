@@ -1,6 +1,7 @@
 import { ArrowUpRight } from "lucide-react";
 import { PageIntro } from "@/components/page-intro";
 import { MacInstall } from "@/components/mac-install";
+import { Shortcuts } from "@/components/shortcuts";
 import { macDownloadURL } from "@/lib/download";
 
 const base = import.meta.env.BASE_URL;
@@ -40,7 +41,7 @@ const everyday = [
   },
   {
     title: "Keyboard",
-    body: "⌘N adds a task, Space ticks the selected one, ⌘⌫ deletes it after asking, and ⌘R refreshes from Google.",
+    body: "⌘N adds a task, Space ticks the selected one and ⌘F searches. Every shortcut is listed below.",
   },
   {
     title: "Closing and quitting",
@@ -122,6 +123,16 @@ export default function Guide() {
             ))}
           </div>
         </div>
+      </section>
+
+      <section id="shortcuts" className="scroll-mt-20 px-5 pt-20">
+        <div className="mx-auto max-w-3xl pb-10 text-center">
+          <h2 className="font-display text-4xl leading-tight">Keyboard shortcuts.</h2>
+          <p className="mx-auto mt-4 max-w-xl text-pretty text-zinc-600 dark:text-zinc-400">
+            Every shortcut in the Mac app, in one place.
+          </p>
+        </div>
+        <Shortcuts />
       </section>
 
       <section className="px-5 py-20 text-center">
