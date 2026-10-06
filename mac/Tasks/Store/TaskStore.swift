@@ -20,6 +20,7 @@ final class TaskStore {
     private(set) var today = Day.today()
 
     var onIDChange: ((_ old: String, _ new: String) -> Void)?
+    @ObservationIgnored weak var undoManager: UndoManager?
 
     let auth: GoogleAuth
     let connectivity: Connectivity
@@ -27,7 +28,8 @@ final class TaskStore {
     private var inFlight: [String: Int] = [:]
     private var lastRefresh = Date.distantPast
     private var observers: [NSObjectProtocol] = []
-    private var usesSampleData = false
+    private var replacedIDs: [String: String] = [:]
+    private(set) var usesSampleData = false
 
     init(auth: GoogleAuth, connectivity: Connectivity) {
         self.auth = auth
@@ -157,6 +159,8 @@ final class TaskStore {
         lingering = []
         hasLoaded = false
         lastRefresh = .distantPast
+        replacedIDs = [:]
+        undoManager?.removeAllActions()
     }
 
     private func apply(lists newLists: [TaskList], defaultID: String, fetched: [String: [GoogleTask]]) {
@@ -180,31 +184,46 @@ final class TaskStore {
     }
 
     func setDone(_ id: String, _ done: Bool) {
-        guard canEdit, let index = index(of: id), !tasks[index].isPending, tasks[index].isDone != done else { return }
-        let parent = tasks[index]
+        guard canEdit, let task = task(id), !task.isPending, task.isDone != done else { return }
         let family = done ? descendantIDs(of: id).subtracting([id]) : []
         let subtasks = tasks.filter { family.contains($0.id) && !$0.isDone && !$0.isPending }
-        let before = [parent] + subtasks
+        let changes = Dictionary(uniqueKeysWithValues: ([task] + subtasks).map { ($0.id, done) })
+        applyDone(changes, title: task.title, actionName: done ? "Mark as Done" : "Mark as Not Done")
+    }
+
+    private func applyDone(_ changes: [String: Bool], title: String, actionName: String) {
+        guard canEdit else { return }
+        let before = tasks.filter { task in
+            guard let done = changes[task.id] else { return false }
+            return !task.isPending && task.isDone != done
+        }
+        guard !before.isEmpty else { return }
         let now = Date.now
         for task in before {
-            guard let i = self.index(of: task.id) else { continue }
+            guard let i = index(of: task.id), let done = changes[task.id] else { continue }
             tasks[i].isDone = done
             tasks[i].completedAt = done ? now : nil
             if done { linger(task.id) }
         }
-        let patch = done
-            ? TaskPatch(status: .completed)
-            : TaskPatch(status: .needsAction, completed: .some(nil))
-        mutate(before.map(\.id), failure: "Couldn’t save “\(parent.title)”. Check your connection.") { [api] in
-            try await withThrowingTaskGroup(of: GoogleTask.self) { group in
-                for task in before {
-                    group.addTask { try await api.patchTask(task.id, in: task.listID, patch: patch) }
+        registerUndo(actionName) { store in
+            let restored = Dictionary(before.map { (store.currentID($0.id), $0.isDone) }) { first, _ in first }
+            store.applyDone(restored, title: title, actionName: actionName)
+        }
+        let patches = before.map { task in
+            (task, changes[task.id] == true
+                ? TaskPatch(status: .completed)
+                : TaskPatch(status: .needsAction, completed: .some(nil)))
+        }
+        mutate(before.map(\.id), failure: "Couldn’t save “\(title)”. Check your connection.") { [api] in
+            try await withThrowingTaskGroup(of: (GoogleTask, String).self) { group in
+                for (task, patch) in patches {
+                    group.addTask { (try await api.patchTask(task.id, in: task.listID, patch: patch), task.listID) }
                 }
-                for try await saved in group {
-                    self.replace(saved.id, with: TaskItem(saved, listID: parent.listID))
+                for try await (saved, listID) in group {
+                    self.replace(saved.id, with: TaskItem(saved, listID: listID))
                 }
             }
-        } undo: {
+        } rollback: {
             for task in before { self.replace(task.id, with: task) }
         }
     }
@@ -218,18 +237,18 @@ final class TaskStore {
     func addTask(title: String, listID: String, due: Day? = nil, parentID: String? = nil) -> String? {
         let title = title.trimmingCharacters(in: .whitespacesAndNewlines)
         guard canEdit, !title.isEmpty else { return nil }
-        let localID = (usesSampleData ? "sample-" : "local-") + UUID().uuidString
+        let localID = newLocalID()
         tasks.append(TaskItem(
             id: localID, listID: listID, title: title, due: due, parentID: parentID,
             position: "", isPending: !usesSampleData
         ))
+        registerUndo("Add Task") { store in store.deleteTask(store.currentID(localID)) }
         mutate([localID], failure: "Couldn’t save “\(title)”. Check your connection.") { [api] in
             let saved = try await api.insertTask(
                 NewTask(title: title, due: due?.googleDue), in: listID, parent: parentID, previous: nil
             )
-            self.replace(localID, with: TaskItem(saved, listID: listID))
-            self.onIDChange?(localID, saved.id)
-        } undo: {
+            self.replaceLocal(localID, with: TaskItem(saved, listID: listID))
+        } rollback: {
             self.tasks.removeAll { $0.id == localID }
         }
         return localID
@@ -239,26 +258,33 @@ final class TaskStore {
         guard canEdit, let index = index(of: id), !tasks[index].isPending else { return }
         let before = tasks[index]
         var patch = TaskPatch()
+        var changed: [String] = []
         if let title, title != before.title {
             let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
             if !trimmed.isEmpty {
                 patch.title = trimmed
                 tasks[index].title = trimmed
+                changed.append("Rename Task")
             }
         }
         if let notes, notes != before.notes {
             patch.notes = .some(notes.isEmpty ? nil : notes)
             tasks[index].notes = notes
+            changed.append("Edit Notes")
         }
         if let due, due != before.due {
             patch.due = .some(due?.googleDue)
             tasks[index].due = due
+            changed.append("Change Due Date")
         }
         guard !patch.isEmpty else { return }
+        registerUndo(changed.count == 1 ? changed[0] : "Edit Task") { store in
+            store.updateTask(store.currentID(id), title: before.title, notes: before.notes, due: .some(before.due))
+        }
         mutate([id], failure: "Couldn’t save “\(before.title)”. Check your connection.") { [api] in
             let saved = try await api.patchTask(id, in: before.listID, patch: patch)
             self.replace(id, with: TaskItem(saved, listID: before.listID))
-        } undo: {
+        } rollback: {
             self.replace(id, with: before)
         }
     }
@@ -268,6 +294,8 @@ final class TaskStore {
         let siblings = tasks
             .filter { $0.listID == task.listID && $0.parentID == task.parentID && $0.id != id }
             .sorted(by: TaskQuery.byPosition)
+        let oldPreviousID = previousSibling(of: task)?.id
+        guard oldPreviousID != previousID else { return }
         let before = tasks.filter { $0.listID == task.listID && $0.parentID == task.parentID }
         var order = siblings.map(\.id)
         let insertAt = previousID.flatMap { order.firstIndex(of: $0).map { $0 + 1 } } ?? 0
@@ -276,10 +304,13 @@ final class TaskStore {
             guard let i = index(of: siblingID) else { continue }
             tasks[i].position = String(format: "%020d", rank)
         }
+        registerUndo("Move Task") { store in
+            store.reorderTask(store.currentID(id), after: oldPreviousID.map(store.currentID))
+        }
         mutate([id], failure: "Couldn’t move “\(task.title)”. Check your connection.") { [api] in
             _ = try await api.moveTask(id, from: task.listID, parent: task.parentID, previous: previousID)
             await self.reloadList(task.listID)
-        } undo: {
+        } rollback: {
             for sibling in before { self.replace(sibling.id, with: sibling) }
         }
     }
@@ -304,24 +335,51 @@ final class TaskStore {
         return result
     }
 
+    private func previousSibling(of task: TaskItem) -> TaskItem? {
+        let siblings = tasks
+            .filter { $0.listID == task.listID && $0.parentID == task.parentID }
+            .sorted(by: TaskQuery.byPosition)
+        guard let index = siblings.firstIndex(where: { $0.id == task.id }), index > 0 else { return nil }
+        return siblings[index - 1]
+    }
+
     func moveTask(_ id: String, to destinationID: String) {
+        move(id, toList: destinationID, parent: nil, after: nil)
+    }
+
+    private func move(_ id: String, toList destinationID: String, parent parentID: String?, after previousID: String?) {
         guard canEdit, let task = task(id), !task.isPending, task.listID != destinationID,
               !destinationID.hasPrefix("local-"), list(destinationID) != nil
         else { return }
+        let parentID = parentID.flatMap { self.task($0)?.listID == destinationID ? $0 : nil }
+        let previous = previousID.flatMap(self.task).flatMap {
+            $0.listID == destinationID && $0.parentID == parentID ? $0 : nil
+        }
+        let oldPreviousID = previousSibling(of: task)?.id
         let toMove = descendantIDs(of: id)
         let before = tasks.filter { toMove.contains($0.id) }
         for moved in before {
             guard let i = index(of: moved.id) else { continue }
             tasks[i].listID = destinationID
             if moved.id == id {
-                tasks[i].parentID = nil
-                tasks[i].position = "~" + id
+                tasks[i].parentID = parentID
+                tasks[i].position = previous.map { $0.position + "~" } ?? ""
             }
         }
+        registerUndo("Move Task") { store in
+            store.move(
+                store.currentID(id),
+                toList: task.listID,
+                parent: task.parentID.map(store.currentID),
+                after: oldPreviousID.map(store.currentID)
+            )
+        }
         mutate(before.map(\.id), failure: "Couldn’t move “\(task.title)”. Check your connection.") { [api] in
-            let saved = try await api.moveTask(id, from: task.listID, to: destinationID)
+            let saved = try await api.moveTask(
+                id, from: task.listID, to: destinationID, parent: parentID, previous: previous?.id
+            )
             self.replace(id, with: TaskItem(saved, listID: destinationID))
-        } undo: {
+        } rollback: {
             for moved in before { self.replace(moved.id, with: moved) }
         }
     }
@@ -330,11 +388,65 @@ final class TaskStore {
         guard canEdit, let task = task(id), !task.isPending else { return }
         let toRemove = descendantIDs(of: id)
         let removed = tasks.filter { toRemove.contains($0.id) }
+        let previousID = previousSibling(of: task)?.id
         tasks.removeAll { toRemove.contains($0.id) }
+        registerUndo("Delete Task") { store in store.restore(removed, rootID: id, after: previousID) }
         mutate(Array(toRemove), failure: "Couldn’t delete “\(task.title)”. Check your connection.") { [api] in
             try await api.deleteTask(id, in: task.listID)
-        } undo: {
+        } rollback: {
             self.tasks += removed
+        }
+    }
+
+    private func restore(_ removed: [TaskItem], rootID: String, after previousID: String?) {
+        guard canEdit, let root = removed.first(where: { $0.id == rootID }), list(root.listID) != nil,
+              task(currentID(rootID)) == nil
+        else { return }
+        let children = Dictionary(grouping: removed.filter { $0.id != rootID }) { $0.parentID ?? "" }
+        var ordered: [TaskItem] = []
+        var stack = [root]
+        while let item = stack.popLast() {
+            ordered.append(item)
+            stack += (children[item.id] ?? []).sorted(by: TaskQuery.byPosition).reversed()
+        }
+        let localIDs = Dictionary(uniqueKeysWithValues: ordered.map { ($0.id, newLocalID()) })
+        let rootParentID = root.parentID.map(currentID).flatMap { task($0) == nil ? nil : $0 }
+        let rootPreviousID = previousID.map(currentID).flatMap { id in
+            task(id).flatMap { $0.listID == root.listID && $0.parentID == rootParentID ? id : nil }
+        }
+        let recreated = ordered.map { item in
+            var copy = item
+            copy.id = localIDs[item.id] ?? item.id
+            copy.parentID = item.id == rootID ? rootParentID : item.parentID.flatMap { localIDs[$0] }
+            copy.isPending = !usesSampleData
+            return copy
+        }
+        tasks += recreated
+        for (old, new) in localIDs { replacedIDs[old] = new }
+        let rootLocalID = localIDs[rootID] ?? rootID
+        registerUndo("Delete Task") { store in store.deleteTask(store.currentID(rootLocalID)) }
+        let pendingIDs = Set(recreated.map(\.id))
+        mutate(recreated.map(\.id), failure: "Couldn’t restore “\(root.title)”. Check your connection.") { [api] in
+            var savedIDs: [String: String] = [:]
+            var lastChild: [String: String] = [:]
+            for item in recreated {
+                let parent = item.id == rootLocalID ? rootParentID : item.parentID.flatMap { savedIDs[$0] }
+                let previous = item.id == rootLocalID ? rootPreviousID : lastChild[parent ?? ""]
+                let saved = try await api.insertTask(
+                    NewTask(
+                        title: item.title,
+                        notes: item.notes.isEmpty ? nil : item.notes,
+                        due: item.due?.googleDue,
+                        status: item.isDone ? .completed : nil
+                    ),
+                    in: item.listID, parent: parent, previous: previous
+                )
+                savedIDs[item.id] = saved.id
+                lastChild[parent ?? ""] = saved.id
+                self.replaceLocal(item.id, with: TaskItem(saved, listID: item.listID))
+            }
+        } rollback: {
+            self.tasks.removeAll { pendingIDs.contains($0.id) }
         }
     }
 
@@ -342,15 +454,16 @@ final class TaskStore {
     func createList(title: String) -> String? {
         let title = title.trimmingCharacters(in: .whitespacesAndNewlines)
         guard canEdit, !title.isEmpty else { return nil }
-        let localID = (usesSampleData ? "sample-" : "local-") + UUID().uuidString
+        let localID = newLocalID()
         lists.append(TaskList(id: localID, title: title))
         mutate([localID], failure: "Couldn’t save “\(title)”. Check your connection.") { [api] in
             let saved = try await api.insertList(title: title)
             if let index = self.lists.firstIndex(where: { $0.id == localID }) {
                 self.lists[index] = saved
             }
+            self.replacedIDs[localID] = saved.id
             self.onIDChange?(localID, saved.id)
-        } undo: {
+        } rollback: {
             self.lists.removeAll { $0.id == localID }
         }
         return localID
@@ -363,9 +476,10 @@ final class TaskStore {
         else { return }
         let before = lists[index]
         lists[index].title = title
+        registerUndo("Rename List") { store in store.renameList(store.currentID(id), to: before.title) }
         mutate([id], failure: "Couldn’t save “\(title)”. Check your connection.") { [api] in
             _ = try await api.renameList(id, title: title)
-        } undo: {
+        } rollback: {
             if let index = self.lists.firstIndex(where: { $0.id == id }) { self.lists[index] = before }
         }
     }
@@ -380,7 +494,7 @@ final class TaskStore {
         tasks.removeAll { $0.listID == id }
         mutate([id], failure: "Couldn’t delete “\(list.title)”. Check your connection.") { [api] in
             try await api.deleteList(id)
-        } undo: {
+        } rollback: {
             self.lists.insert(list, at: min(index, self.lists.count))
             self.tasks += removed
         }
@@ -390,7 +504,7 @@ final class TaskStore {
         _ ids: [String],
         failure: String,
         _ operation: @escaping () async throws -> Void,
-        undo: @escaping () -> Void
+        rollback: @escaping () -> Void
     ) {
         if usesSampleData { return }
         for id in ids { inFlight[id, default: 0] += 1 }
@@ -398,7 +512,7 @@ final class TaskStore {
             do {
                 try await operation()
             } catch {
-                withAnimation(.snappy) { undo() }
+                withAnimation(.snappy) { rollback() }
                 showNotice(failure)
             }
             for id in ids {
@@ -406,6 +520,34 @@ final class TaskStore {
                 if inFlight[id] == 0 { inFlight[id] = nil }
             }
         }
+    }
+
+    private func registerUndo(_ actionName: String, _ action: @escaping (TaskStore) -> Void) {
+        guard let undoManager else { return }
+        undoManager.registerUndo(withTarget: self) { store in
+            withAnimation(.snappy) { action(store) }
+        }
+        undoManager.setActionName(actionName)
+    }
+
+    func currentID(_ id: String) -> String {
+        var id = id
+        var seen: Set<String> = [id]
+        while let next = replacedIDs[id], seen.insert(next).inserted { id = next }
+        return id
+    }
+
+    private func newLocalID() -> String {
+        (usesSampleData ? "sample-" : "local-") + UUID().uuidString
+    }
+
+    private func replaceLocal(_ localID: String, with saved: TaskItem) {
+        replace(localID, with: saved)
+        for i in tasks.indices where tasks[i].parentID == localID {
+            tasks[i].parentID = saved.id
+        }
+        replacedIDs[localID] = saved.id
+        onIDChange?(localID, saved.id)
     }
 
     private func replace(_ id: String, with task: TaskItem) {

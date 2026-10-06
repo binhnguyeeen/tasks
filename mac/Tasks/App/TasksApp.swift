@@ -6,6 +6,8 @@ struct TasksApp: App {
     @State private var auth: GoogleAuth
     @State private var store: TaskStore
     @State private var window: WindowModel
+    @State private var reminders: Reminders
+    @State private var widgetBridge: WidgetBridge
 
     init() {
         let auth = GoogleAuth()
@@ -21,6 +23,12 @@ struct TasksApp: App {
         _auth = State(initialValue: auth)
         _store = State(initialValue: store)
         _window = State(initialValue: window)
+        let reminders = Reminders(store: store, window: window)
+        reminders.start()
+        _reminders = State(initialValue: reminders)
+        let widgetBridge = WidgetBridge(store: store)
+        widgetBridge.start()
+        _widgetBridge = State(initialValue: widgetBridge)
     }
 
     var body: some Scene {
@@ -50,6 +58,7 @@ struct TasksApp: App {
             SettingsView()
                 .environment(auth)
                 .environment(store)
+                .environment(reminders)
         }
         .windowResizability(.contentSize)
     }

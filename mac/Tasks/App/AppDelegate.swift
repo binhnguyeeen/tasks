@@ -31,6 +31,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        if notification.userInfo?[NSApplication.launchUserNotificationUserInfoKey] != nil {
+            MainWindowRequest.isPendingAtLaunch = false
+        }
         LoginItem.enableOnFirstLaunch()
         ToolbarDisplayModes.limitToIcons()
         NSWorkspace.shared.notificationCenter.addObserver(
