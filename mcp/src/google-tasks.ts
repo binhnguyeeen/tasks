@@ -102,4 +102,16 @@ export class GoogleTasksClient {
 			patch,
 		);
 	}
+
+	moveTask(
+		listId: string,
+		taskId: string,
+		opts: { destinationList?: string; parent?: string; previous?: string },
+	): Promise<GoogleTask> {
+		return this.request("POST", `/lists/${encodeURIComponent(listId)}/tasks/${encodeURIComponent(taskId)}/move`, {
+			destinationTasklist: opts.destinationList,
+			parent: opts.parent,
+			previous: opts.previous,
+		});
+	}
 }

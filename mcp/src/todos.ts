@@ -36,6 +36,17 @@ export interface Todo {
 	subtasks?: Todo[];
 }
 
+export interface SearchHit extends Todo {
+	list_title: string;
+	parent_title?: string;
+}
+
+export interface SearchList {
+	id: string;
+	title: string;
+	tasks: GoogleTask[];
+}
+
 export interface TodoGroup {
 	list_id: string;
 	list_title: string;
@@ -85,6 +96,16 @@ export function toTodo(task: GoogleTask, listId: string, today: string): Todo {
 	return todo;
 }
 
+export function foldText(text: string): string {
+	return text.toLowerCase().normalize("NFD").replace(/\p{M}/gu, "").replace(/đ/g, "d");
+}
+
+export function matchesQuery(task: GoogleTask, query: string): boolean {
+	const words = foldText(query).split(/\s+/).filter(Boolean);
+	const haystack = foldText(`${task.title ?? ""}\n${task.notes ?? ""}`);
+	return words.every((word) => haystack.includes(word));
+}
+
 function byPosition(a: GoogleTask, b: GoogleTask): number {
 	return (a.position ?? "").localeCompare(b.position ?? "");
 }
@@ -103,17 +124,12 @@ export function buildTodos(
 	includeCompleted: boolean,
 	query?: string,
 ): Todo[] {
-	const needle = query?.trim().toLowerCase();
+	const needle = query?.trim();
 	const kept = tasks
 		.filter((t) => !t.deleted)
 		.filter((t) => includeCompleted || t.status !== "completed")
 		.filter((t) => matchesWhen(t, when, today))
-		.filter(
-			(t) =>
-				!needle ||
-				(t.title ?? "").toLowerCase().includes(needle) ||
-				(t.notes ?? "").toLowerCase().includes(needle),
-		)
+		.filter((t) => !needle || matchesQuery(t, needle))
 		.sort(when === "today_and_overdue" || when === "next_7_days" ? byDueThenPosition : byPosition);
 
 	const nodes = new Map<string, Todo>();
@@ -135,4 +151,41 @@ export function buildTodos(
 
 export function countTodos(todos: Todo[]): number {
 	return todos.reduce((n, t) => n + 1 + countTodos(t.subtasks ?? []), 0);
+}
+
+export function searchTasks(
+	lists: SearchList[],
+	query: string,
+	today: string,
+	includeCompleted: boolean,
+	limit: number,
+): { count: number; truncated: boolean; tasks: SearchHit[] } {
+	const hits: { hit: SearchHit; listIndex: number; position: string }[] = [];
+	lists.forEach((list, listIndex) => {
+		const byId = new Map(list.tasks.map((t) => [t.id, t]));
+		for (const task of list.tasks) {
+			if (task.deleted) continue;
+			if (!includeCompleted && task.status === "completed") continue;
+			if (!matchesQuery(task, query)) continue;
+			const hit: SearchHit = { ...toTodo(task, list.id, today), list_title: list.title };
+			const parentTitle = task.parent ? byId.get(task.parent)?.title?.trim() : undefined;
+			if (parentTitle) hit.parent_title = parentTitle;
+			hits.push({ hit, listIndex, position: task.position ?? "" });
+		}
+	});
+	hits.sort((a, b) => {
+		const openA = a.hit.status === "needsAction" ? 0 : 1;
+		const openB = b.hit.status === "needsAction" ? 0 : 1;
+		if (openA !== openB) return openA - openB;
+		const dueA = a.hit.due ?? "9999-99-99";
+		const dueB = b.hit.due ?? "9999-99-99";
+		if (dueA !== dueB) return dueA.localeCompare(dueB);
+		if (a.listIndex !== b.listIndex) return a.listIndex - b.listIndex;
+		return a.position.localeCompare(b.position);
+	});
+	return {
+		count: hits.length,
+		truncated: hits.length > limit,
+		tasks: hits.slice(0, limit).map((h) => h.hit),
+	};
 }
