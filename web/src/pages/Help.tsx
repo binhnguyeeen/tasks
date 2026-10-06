@@ -40,6 +40,18 @@ const questions: { q: string; a: ReactNode }[] = [
     ),
   },
   {
+    q: "Are there keyboard shortcuts?",
+    a: (
+      <>
+        Yes. ⌘N adds a task and Space ticks the selected one. The Guide lists{" "}
+        <a href={`${base}guide.html#shortcuts`} className={link}>
+          every shortcut
+        </a>
+        .
+      </>
+    ),
+  },
+  {
     q: "Does the Mac app work offline?",
     a: (
       <>

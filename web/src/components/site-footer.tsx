@@ -7,6 +7,7 @@ export function SiteFooter() {
         <div className="flex flex-wrap gap-x-6 gap-y-2">
           <a href={`${base}guide.html#install-mac`} className="hover:underline">Install on Mac</a>
           <a href={`${base}help.html`} className="hover:underline">Help</a>
+          <a href={`${base}changelog.html`} className="hover:underline">Changelog</a>
           <a href={`${base}privacy.html`} className="hover:underline">Privacy Policy</a>
           <a href={`${base}terms.html`} className="hover:underline">Terms of Service</a>
           <a href="https://github.com/binhnguyeeen/tasks" className="hover:underline">Source on GitHub</a>
