@@ -21,30 +21,35 @@ final class WidgetBridge {
     static func snapshot(of store: TaskStore) -> WidgetSnapshot {
         let horizon = store.today.adding(days: 1)
         let order = Dictionary(store.lists.enumerated().map { ($1.id, $0) }) { first, _ in first }
-        let items = store.tasks
-            .filter { task in
-                guard let due = task.due else { return false }
-                return !task.isDone && !task.isPending && due <= horizon
-            }
+        let open = store.tasks
+            .filter { !$0.isDone && !$0.isPending }
             .sorted { a, b in
-                if a.due != b.due { return (a.due ?? horizon) < (b.due ?? horizon) }
+                switch (a.due, b.due) {
+                case let (x?, y?) where x != y: return x < y
+                case (.some, nil): return true
+                case (nil, .some): return false
+                default: break
+                }
                 if a.listID != b.listID { return (order[a.listID] ?? .max) < (order[b.listID] ?? .max) }
-                return TaskQuery.byPosition(a, b)
+                if a.position != b.position { return TaskQuery.byPosition(a, b) }
+                if (a.parentID == nil) != (b.parentID == nil) { return a.parentID == nil }
+                return a.id < b.id
             }
-            .prefix(itemLimit)
-            .map { task in
-                WidgetSnapshot.Item(
-                    id: task.id,
-                    title: task.title,
-                    listTitle: store.listTitle(task.listID),
-                    color: store.listColor(task.listID).rawValue,
-                    due: task.due?.googleDue ?? ""
-                )
-            }
+        let item = { (task: TaskItem) in
+            WidgetSnapshot.Item(
+                id: task.id,
+                title: task.title,
+                listTitle: store.listTitle(task.listID),
+                color: store.listColor(task.listID).rawValue,
+                due: task.due?.googleDue ?? ""
+            )
+        }
         return WidgetSnapshot(
             isSignedIn: store.auth.isSignedIn,
             showsLists: store.spansSeveralLists,
-            items: Array(items)
+            items: open.filter { $0.due.map { $0 <= horizon } ?? false }.prefix(itemLimit).map(item),
+            open: open.prefix(itemLimit).map(item),
+            openCount: open.count
         )
     }
 
@@ -80,7 +85,7 @@ final class WidgetBridge {
         do {
             try snapshot.save()
             written = snapshot
-            WidgetCenter.shared.reloadTimelines(ofKind: WidgetSnapshot.widgetKind)
+            WidgetCenter.shared.reloadAllTimelines()
         } catch {
         }
     }

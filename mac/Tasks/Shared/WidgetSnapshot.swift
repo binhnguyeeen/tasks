@@ -2,7 +2,8 @@ import Foundation
 
 nonisolated struct WidgetSnapshot: Codable, Equatable, Sendable {
     static let folder = "Library/Application Support/com.binhnguyen.tasks.widget"
-    static let widgetKind = "Due"
+    static let dueKind = "Due"
+    static let openKind = "Open"
     static let fileName = "widget.json"
 
     struct Item: Codable, Equatable, Identifiable, Sendable {
@@ -16,6 +17,8 @@ nonisolated struct WidgetSnapshot: Codable, Equatable, Sendable {
     var isSignedIn: Bool
     var showsLists: Bool
     var items: [Item]
+    var open: [Item]
+    var openCount: Int
 
     static var fileURL: URL? {
         guard let home = getpwuid(getuid())?.pointee.pw_dir else { return nil }

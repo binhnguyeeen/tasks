@@ -5,12 +5,13 @@ import WidgetKit
 struct TasksWidgetBundle: WidgetBundle {
     var body: some Widget {
         DueWidget()
+        OpenWidget()
     }
 }
 
 struct DueWidget: Widget {
     var body: some WidgetConfiguration {
-        StaticConfiguration(kind: WidgetSnapshot.widgetKind, provider: DueProvider()) { entry in
+        StaticConfiguration(kind: WidgetSnapshot.dueKind, provider: SnapshotProvider()) { entry in
             DueWidgetView(entry: entry)
                 .containerBackground(.background, for: .widget)
         }
@@ -20,7 +21,19 @@ struct DueWidget: Widget {
     }
 }
 
-struct DueEntry: TimelineEntry {
+struct OpenWidget: Widget {
+    var body: some WidgetConfiguration {
+        StaticConfiguration(kind: WidgetSnapshot.openKind, provider: SnapshotProvider()) { entry in
+            OpenWidgetView(entry: entry)
+                .containerBackground(.background, for: .widget)
+        }
+        .configurationDisplayName("Open Tasks")
+        .description("Every task you haven’t ticked off yet, soonest first.")
+        .supportedFamilies([.systemSmall, .systemMedium, .systemLarge])
+    }
+}
+
+struct SnapshotEntry: TimelineEntry {
     var date: Date
     var snapshot: WidgetSnapshot?
 
@@ -30,60 +43,116 @@ struct DueEntry: TimelineEntry {
         snapshot?.due(on: today) ?? ([], [])
     }
 
-    static let placeholder = DueEntry(
-        date: .now,
-        snapshot: WidgetSnapshot(
-            isSignedIn: true,
-            showsLists: false,
-            items: [
-                .init(id: "a", title: "Pay rent", listTitle: "My Tasks", color: "blue", due: Day.today().adding(days: -1).googleDue),
-                .init(id: "b", title: "Call mom", listTitle: "Home", color: "green", due: Day.today().googleDue),
-                .init(id: "c", title: "Send invoice", listTitle: "Work", color: "orange", due: Day.today().googleDue),
-            ]
+    static let placeholder: SnapshotEntry = {
+        let today = Day.today()
+        let items: [WidgetSnapshot.Item] = [
+            .init(id: "a", title: "Pay rent", listTitle: "My Tasks", color: "blue", due: today.adding(days: -1).googleDue),
+            .init(id: "b", title: "Call mom", listTitle: "Home", color: "green", due: today.googleDue),
+            .init(id: "c", title: "Send invoice", listTitle: "Work", color: "orange", due: today.googleDue),
+        ]
+        let open = items + [
+            .init(id: "d", title: "Return library books", listTitle: "My Tasks", color: "blue", due: today.adding(days: 4).googleDue),
+            .init(id: "e", title: "Buy printer ink", listTitle: "My Tasks", color: "blue", due: ""),
+        ]
+        return SnapshotEntry(
+            date: .now,
+            snapshot: WidgetSnapshot(isSignedIn: true, showsLists: true, items: items, open: open, openCount: open.count)
         )
-    )
+    }()
 }
 
-struct DueProvider: TimelineProvider {
-    func placeholder(in context: Context) -> DueEntry {
+struct SnapshotProvider: TimelineProvider {
+    func placeholder(in context: Context) -> SnapshotEntry {
         .placeholder
     }
 
-    func getSnapshot(in context: Context, completion: @escaping (DueEntry) -> Void) {
+    func getSnapshot(in context: Context, completion: @escaping (SnapshotEntry) -> Void) {
         let snapshot = WidgetSnapshot.load()
-        completion(context.isPreview && snapshot == nil ? .placeholder : DueEntry(date: .now, snapshot: snapshot))
+        completion(context.isPreview && snapshot == nil ? .placeholder : SnapshotEntry(date: .now, snapshot: snapshot))
     }
 
-    func getTimeline(in context: Context, completion: @escaping (Timeline<DueEntry>) -> Void) {
+    func getTimeline(in context: Context, completion: @escaping (Timeline<SnapshotEntry>) -> Void) {
         let snapshot = WidgetSnapshot.load()
         let now = Date.now
         let midnight = Calendar.current.startOfDay(for: now.addingTimeInterval(86_400))
-        let entries = [DueEntry(date: now, snapshot: snapshot), DueEntry(date: midnight, snapshot: snapshot)]
+        let entries = [SnapshotEntry(date: now, snapshot: snapshot), SnapshotEntry(date: midnight, snapshot: snapshot)]
         completion(Timeline(entries: entries, policy: .after(midnight.addingTimeInterval(3_600))))
     }
 }
 
 struct DueWidgetView: View {
-    let entry: DueEntry
+    let entry: SnapshotEntry
     @Environment(\.widgetFamily) private var family
 
     var body: some View {
         let due = entry.due
-        let rows = due.overdue.map { ($0, true) } + due.today.map { ($0, false) }
+        let rows = due.overdue + due.today
+        TaskWidgetLayout(
+            entry: entry,
+            title: "Today",
+            symbol: "calendar",
+            tint: .blue,
+            rows: rows,
+            total: rows.count,
+            emptyText: "Nothing due."
+        ) { item in
+            let overdue = Day(googleDue: item.due).map { $0 < entry.today } ?? false
+            return overdue && family != .systemSmall ? .due(red: true) : .list
+        }
+    }
+}
+
+struct OpenWidgetView: View {
+    let entry: SnapshotEntry
+    @Environment(\.widgetFamily) private var family
+
+    var body: some View {
+        TaskWidgetLayout(
+            entry: entry,
+            title: "Open",
+            symbol: "tray.fill",
+            tint: .gray,
+            rows: entry.snapshot?.open ?? [],
+            total: entry.snapshot?.openCount ?? 0,
+            emptyText: "All done."
+        ) { item in
+            guard family != .systemSmall, let day = Day(googleDue: item.due) else { return .list }
+            return .due(red: day < entry.today)
+        }
+    }
+}
+
+enum RowDetail {
+    case list
+    case due(red: Bool)
+}
+
+struct TaskWidgetLayout: View {
+    let entry: SnapshotEntry
+    let title: String
+    let symbol: String
+    let tint: Color
+    let rows: [WidgetSnapshot.Item]
+    let total: Int
+    let emptyText: String
+    let detail: (WidgetSnapshot.Item) -> RowDetail
+    @Environment(\.widgetFamily) private var family
+
+    var body: some View {
         VStack(alignment: .leading, spacing: family == .systemSmall ? 6 : 8) {
-            header(count: rows.count)
+            header
             if entry.snapshot?.isSignedIn != true {
                 message("Open Tasks to sign in.")
             } else if rows.isEmpty {
-                message("Nothing due.")
+                message(emptyText)
             } else {
                 VStack(alignment: .leading, spacing: family == .systemSmall ? 5 : 7) {
-                    ForEach(rows.prefix(rowLimit), id: \.0.id) { item, overdue in
-                        row(item, overdue: overdue)
+                    ForEach(rows.prefix(rowLimit)) { item in
+                        row(item)
                     }
                 }
-                if rows.count > rowLimit {
-                    Text("\(rows.count - rowLimit) more")
+                if total > min(rows.count, rowLimit) {
+                    Text("\(total - min(rows.count, rowLimit)) more")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -101,17 +170,17 @@ struct DueWidgetView: View {
         }
     }
 
-    private func header(count: Int) -> some View {
+    private var header: some View {
         HStack(alignment: .firstTextBaseline) {
-            Label("Today", systemImage: "calendar")
+            Label(title, systemImage: symbol)
                 .font(.headline)
-                .foregroundStyle(.blue)
+                .foregroundStyle(tint)
             Spacer()
-            if count > 0 {
-                Text(count, format: .number)
+            if total > 0 {
+                Text(total, format: .number)
                     .font(.title2.bold())
                     .monospacedDigit()
-                    .foregroundStyle(.blue)
+                    .foregroundStyle(tint)
             }
         }
     }
@@ -122,9 +191,8 @@ struct DueWidgetView: View {
             .foregroundStyle(.secondary)
     }
 
-    private func row(_ item: WidgetSnapshot.Item, overdue: Bool) -> some View {
+    private func row(_ item: WidgetSnapshot.Item) -> some View {
         let color = (ListColor(rawValue: item.color) ?? .blue).color
-        let dueText = Day(googleDue: item.due).map { DueText.text(for: $0, today: entry.today) }
         return HStack(spacing: 6) {
             Image(systemName: "circle")
                 .foregroundStyle(color)
@@ -133,17 +201,27 @@ struct DueWidgetView: View {
                 .font(family == .systemSmall ? .caption : .callout)
                 .lineLimit(1)
             Spacer(minLength: 4)
-            if overdue, family != .systemSmall, let dueText {
-                Text(dueText)
+            trailing(item)
+        }
+        .accessibilityElement(children: .combine)
+    }
+
+    @ViewBuilder
+    private func trailing(_ item: WidgetSnapshot.Item) -> some View {
+        switch detail(item) {
+        case .due(let red):
+            if let day = Day(googleDue: item.due) {
+                Text(DueText.text(for: day, today: entry.today))
                     .font(.caption)
-                    .foregroundStyle(.red)
-            } else if family == .systemLarge, entry.snapshot?.showsLists == true {
+                    .foregroundStyle(red ? AnyShapeStyle(.red) : AnyShapeStyle(.secondary))
+            }
+        case .list:
+            if family == .systemLarge, entry.snapshot?.showsLists == true {
                 Text(item.listTitle)
                     .font(.caption)
                     .foregroundStyle(.tertiary)
                     .lineLimit(1)
             }
         }
-        .accessibilityElement(children: .combine)
     }
 }
