@@ -37,11 +37,15 @@ targets:
         LSApplicationCategoryType: public.app-category.productivity
         NSHumanReadableCopyright: MIT License
         GoogleClientID: $(GOOGLE_CLIENT_ID)
+    dependencies:
+      - target: TasksWidget
     entitlements:
       path: Tasks/Tasks.entitlements
       properties:
         com.apple.security.app-sandbox: true
         com.apple.security.network.client: true
+        com.apple.security.temporary-exception.files.home-relative-path.read-write:
+          - /Library/Application Support/com.binhnguyen.tasks.widget/
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.binhnguyen.tasks
@@ -58,6 +62,42 @@ targets:
           APP_DISPLAY_NAME: Tasks (Debug)
         Release:
           APP_DISPLAY_NAME: Tasks
+          CODE_SIGN_INJECT_BASE_ENTITLEMENTS: NO
+  TasksWidget:
+    type: app-extension
+    platform: macOS
+    sources:
+      - path: TasksWidget
+      - path: Tasks/Shared
+      - path: Tasks/API/Day.swift
+      - path: Tasks/Support/DueText.swift
+      - path: Tasks/Support/ListPalette.swift
+    info:
+      path: TasksWidget/Info.plist
+      properties:
+        CFBundleDisplayName: Tasks
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+    entitlements:
+      path: TasksWidget/TasksWidget.entitlements
+      properties:
+        com.apple.security.app-sandbox: true
+        com.apple.security.temporary-exception.files.home-relative-path.read-write:
+          - /Library/Application Support/com.binhnguyen.tasks.widget/
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.binhnguyen.tasks.widget
+        PRODUCT_NAME: TasksWidget
+        CODE_SIGN_IDENTITY: "-"
+        CODE_SIGN_STYLE: Manual
+        DEVELOPMENT_TEAM: ""
+        ENABLE_HARDENED_RUNTIME: YES
+        SWIFT_STRICT_CONCURRENCY: complete
+        SKIP_INSTALL: YES
+      configs:
+        Release:
           CODE_SIGN_INJECT_BASE_ENTITLEMENTS: NO
   TasksTests:
     type: bundle.unit-test

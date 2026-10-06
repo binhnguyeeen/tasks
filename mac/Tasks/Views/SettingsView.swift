@@ -3,6 +3,7 @@ import SwiftUI
 struct SettingsView: View {
     @Environment(GoogleAuth.self) private var auth
     @Environment(TaskStore.self) private var store
+    @Environment(Reminders.self) private var reminders
     @State private var opensAtLogin = LoginItem.isEnabled
     @State private var isConfirmingSignOut = false
 
@@ -33,6 +34,7 @@ struct SettingsView: View {
                         opensAtLogin = LoginItem.isEnabled
                     }
             }
+            remindersSection
             Section("About") {
                 LabeledContent("Version", value: version)
                 Link("Privacy Policy", destination: URL(string: "https://binhnguyeeen.github.io/tasks/privacy.html")!)
@@ -53,6 +55,31 @@ struct SettingsView: View {
         } message: {
             Text("Tasks will stop showing your tasks until you sign in again.")
         }
+    }
+
+    private var remindersSection: some View {
+        @Bindable var reminders = reminders
+        return Section {
+            Toggle("Due Date Reminders", isOn: $reminders.isEnabled)
+            DatePicker("Remind At", selection: $reminders.time, displayedComponents: .hourAndMinute)
+                .disabled(!reminders.isEnabled)
+            if reminders.isEnabled && reminders.authorization == .denied {
+                LabeledContent {
+                    Button("Open System Settings…") {
+                        NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.Notifications-Settings.extension")!)
+                    }
+                } label: {
+                    Text("Notifications Are Off")
+                    Text("Allow notifications for Tasks in System Settings.")
+                }
+            }
+        } header: {
+            Text("Reminders")
+        } footer: {
+            Text("A notification for each task on the day it’s due, with a Mark as Done button.")
+                .foregroundStyle(.secondary)
+        }
+        .task { await reminders.refreshAuthorization() }
     }
 
     private var version: String {

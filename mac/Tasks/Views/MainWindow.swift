@@ -4,6 +4,7 @@ struct MainWindow: View {
     @Environment(GoogleAuth.self) private var auth
     @Environment(TaskStore.self) private var store
     @Environment(WindowModel.self) private var window
+    @Environment(\.undoManager) private var undoManager
     @FocusState private var isSearchFocused: Bool
 
     var body: some View {
@@ -17,6 +18,7 @@ struct MainWindow: View {
         }
         .frame(minWidth: 720, minHeight: 440)
         .onAppear {
+            store.undoManager = undoManager
             DockPolicy.mainWindowDidOpen()
             Task { await store.refreshIfStale() }
         }

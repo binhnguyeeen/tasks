@@ -88,6 +88,7 @@ nonisolated struct NewTask: Encodable, Sendable {
     var title: String
     var notes: String?
     var due: String?
+    var status: GoogleTask.Status?
 }
 
 nonisolated struct TaskPatch: Encodable, Sendable {
